@@ -1,0 +1,23 @@
+embed <drac2>
+c = character()
+coins = c.coinpurse
+#The above code sets variables up for this code. Its shortening how many times I have to type character() and character().coinpurse, basically.
+
+#All the below set up important variables the other aliases in this pack uses. Delete any of these you decide not to use and be sure you have edited the other related aliases.
+c.set_cvar_nx("InspirationPoints", 0)
+c.set_cvar_nx("InfluencePoints", 0)
+c.set_cvar_nx("FatePoints", 0)
+c.set_cvar_nx("pTools","")
+c.set_cvar_nx("eTools","")
+c.create_cc_nx("Downtime",0,100,'none','default',reset_by='100')
+c.create_cc_nx("Long Rests",0,7,'none','default',reset_by='7')
+c.set_cvar_nx("recipes",get_gvar("GVAR or SVAR here. If using an svar, make sure you change get_gvar to get_svar. Keep the quotations."))
+c.set_cvar_nx("Lifestyle", "Modest")
+
+#The below code gives the player 200gp. This is just what my server does since you can only buy from the PHB in character creation. You can change the amount or delete the line as you like.
+coins.modify_coins(gp=+200)
+
+#On my server, I include something like the below line to walk players through the setup process. Edit this as you like.
+return f''' -title "Character Setup" -desc "Running this command has added important details to your character. To finish setting up, you will need to run the following commands: !bag, !xp, !tool, !level." '''
+
+</drac2>
