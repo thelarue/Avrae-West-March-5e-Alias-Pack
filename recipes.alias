@@ -1,0 +1,178 @@
+embed <drac2>
+G = '`'*3
+n = '\n'
+o = ' '*5
+#The above make it so formatting is not a nightmare. G will make 3 ```, which in Discord is how you start and then end a code block, ex: ```hello```
+
+#The 2 code blocks below create a list that then is included in the display for this alias. Its purpose is to neatly print all the Major and Minor crafting professions and hopefully not look awful on mobile. YMMV
+mprofList = ["Alchemy","Profession Name", "Profession Name"]
+mdisplay = []
+mdisplay.append(f"Major Crafting Professions:|{G}")
+mdisplay.append(''.join([f"{x:20}" for x in mprofList]))
+mdisplay.append(G)
+
+sproflist = ["Minor Crafting Profession", "Minor Crafting Profession", "You can really list as many as you want in either of these."]
+sdisplay = []
+sdisplay.append(f"Minor Crafting Professions:|{G}")
+sdisplay.append(''.join([f"{x:20}" for x in sproflist]))
+sdisplay.append(G)
+
+#The below is an explanation of how finding a recipe works. You need to know a recipe to craft it. Everyone starts off with a few recipes. This system was developed by Kibbles'Tasty and adapted by me.
+display = f''' -title "{name} wants to find a recipe!" -desc "You can use this alias to find recipes for all the crafting professions. This alias will allow you to learn any tier of item, even legendary! Every time you learn something, you will gain experience and it will cost you a minor amount of gold and 4 hours of downtime.\n\nThe gold cost is 2 times the tier of the recipe. So a tier 1, or common, recipe would cost 2 gp. A tier 5, or legendary, recipe would cost 10 gp.\n\nIf you want to see what you already know how to make, use !recipes book. Every profession has starters." -f "{n.join(mdisplay)}" -f "{n.join(sdisplay)}\n*Note: Minor professions have no recipes to learn and will simply return a harmless error if you try to find one anyway.*" '''
+
+#character variables
+c = character()
+cs = character().skills
+coins = c.coinpurse
+cc = "Downtime"
+curXP = 0
+
+st = c.get_cc(cc)>=4
+hours = character().cc_str(cc)
+textList = [display[i:i+1000] for i in range(0, len(display), 1000)]
+#misc variables
+rr_num = c.csettings.get("reroll", None)
+args = &ARGS&
+parse = argparse(args)
+find_dc = 14
+costc = 2
+cost = "error"
+easyXP = {1: 6, 2: 12, 3: 18, 4: 31, 5: 62, 6: 75, 7: 87, 8: 112, 9: 137, 10: 150, 11: 200, 12: 250, 13: 275, 14: 312, 15: 350, 16: 400, 17: 500, 18: 525, 19: 600, 20: 700}
+xpEarned = ((easyXP[level])/2) #This code here looks at the level of a character and uses that to determine how much XP they earn. The XP list above is based on the easy encounter XP table in the DMG.
+hcost = 4 #This is how many hours of downtime this code will cost.
+
+#bonuses to rolls, such as '-b' or '-f' or '-l', so if you wanted to award someone a finding bonus to find a recipe, they could use !recipes alchemy -f 10 to gain a +10 to finding a recipe for alchemy, for example. The -b is a generic bonus that applies to both finding and learning. -f is for finding. -l is for learning.
+misc_bonus = ""
+bonus = parse.get('b')
+if "-b" in args:
+	misc_bonus += f'+{bonus[0]}'
+find_bonus = ""
+fbonus = parse.get('f')
+if "-f" in args:
+	find_bonus += f'+{fbonus[0]}'
+learn_bonus = ""
+lbonus = parse.get('l')
+if "-l" in args:
+	learn_bonus += f'+{lbonus[0]}'
+
+	
+pic = f' {image} '
+tools = get("pTools")
+#If they receive an error about not having pTools, it means they haven't run !tool.
+
+#advantage sorting, can have advantage for finding or learning by putting f or l in front of adv. EX: !recipes alch fadv would grant advantage to finding a recipe.
+advbase = parse.adv(boolwise=True)
+far = parse.adv(custom={'adv': 'fadv', 'dis': 'fdis'}, boolwise=True)
+lar = parse.adv(custom={'adv': 'ladv', 'dis': 'ldis'}, boolwise=True)
+if far == None and advbase != None:
+	far = advbase
+if lar == None and advbase != None:
+	lar = advbase
+if far == True and advbase != None:
+	if advbase == False:
+		far = None
+	else:
+		far = far
+if far == False and advbase != None:
+	if advbase == True:
+		far = None
+	else:
+		far = far
+if lar == True and advbase != None:
+	if advbase == False:
+		lar = None
+	else:
+		lar = lar
+if lar == False and advbase != None:
+	if advbase == True:
+		lar = None
+	else:
+		lar = lar
+
+#This rolls to find a recipe. The skills are the knowledge skills (except history) and insight. I wanted to give love to INT and WIS. Feel free to change this up.
+findskills = [cs.investigation, cs.nature, cs.arcana, cs.insight] #Creates a list of the skill bonuses accepted to find a recipe.
+fa = max(findskills) #This checks which one of the listed skills is highest for the character. This is considered the best skill to use for the character running the command.
+findlist = ["Investigation", "Nature", "Arcana", "Insight"] #This is a list that is ordered in the same way as findskills.
+findex = findskills.index(fa) #This says "Look for what number the best skill in its ordered list. For for example, if investigation is best, it will set findex to 0, because lists start with 0, 1, 2, 3 etc.
+fskill = findlist[findex] #This says "Okay so take the number stored in findex and count that many in the findlist. So going with the previous example, if findex is 0, it will look at findlist, count to 0 and save fskill as "Investigation" since it corresponse. I hope this makes sense.
+fmc = (10 if c.csettings.get("talent", False) and fa.prof else None) #This is setting a minimum number IF its needed. For example, if characters have a minimum of 10 in any roll, like I believe Bards get at some point. It also adds the proficiency from the best skill if its applicable.
+finding = fa.d20(far, rr_num, fmc) + ("+1d4[guidance]" if parse.get("guidance") else "") + misc_bonus + find_bonus #This is a long dice expression, basically, its saying roll a d20 using the best skill, roll advantage if you see "fadv" in the command, reroll if the character has rerolls turned on in their character settings, and if they roll less than a 10, use fmc instead, finally add any bonuses if guidance was included in the command and any -b or -f bonuses. Phew, mouthful.
+find_check = vroll(finding) #It takes everything written above and puts it inside this vroll. vroll will show how a result was reached, so it won't just show the result, but it will show the roll and all bonuses added = the result. This is good to make sure nothing was overlooked.
+if find_check.total < find_dc: #Earlier find_dc was defined in the variables area. Right now, if their roll was lower than 14, they don't find the recipe (found = 0), otherwise, they find one (found = 1)
+	found = 0
+else:
+	found = 1
+
+		
+if args: #if the command has arguments, it will look through this if block
+	if st:	#st was defined earlier as the character having enough downtime left. On my server, they need at least 4 hours of downtime to find a recipe.
+		if args[0].lower() in "alchemy": #this is saying, if the first word after !recipes is any part of "alchemy" use this code block. For example, this code will accept !recipes alchemy or !recipes alch or !recipes ALCHEMY or !recipes al. Just make sure however you enter it, it is unique enough from the other professions.
+			if 'Alchemist\'s Supplies' not in tools: #On my server, you must be trained in Alchemist Supplies to learn alchemy and craft alchemy recipes.
+				err("You cannot learn alchemy unless you are trained in alchemist supplies.") #error message when they don't have proficiency or forgot to put it in their !tool
+			pic = "IMAGE URL HERE"
+			recipes = dict(load_json(get("recipes", '[["Alchemy Compendium", {}]]')))
+			#recipe variables
+			MasterRecipes = load_yaml(get_gvar("04077b3f-2c6f-4422-a50a-ef82de1b8564"))
+			AllRecipes = list(MasterRecipes.keys())
+			KnownRecipes = list(recipes["Alchemy Compendium"].keys())
+			PossibleRecipes = [x for x in AllRecipes if x not in KnownRecipes]
+			if PossibleRecipes:
+				NewRecipe = randchoice(PossibleRecipes)
+			else:
+				return f''' embed -title "{name} has learned everything there is to know about alchemy!" -color {color} -thumb {image} -desc "You literally cannot learn more alchemy. Go do something else or beg Ru for an update. This command did not deduct any downtime" '''
+			desc = MasterRecipes[NewRecipe]["desc"] 
+			ctime = MasterRecipes[NewRecipe]["ctime"] 
+			lcheck = MasterRecipes[NewRecipe]["lcheck"] 
+			cdc = MasterRecipes[NewRecipe]["dc"] 
+			mats = MasterRecipes[NewRecipe]["mats"] 
+			tier = MasterRecipes[NewRecipe]["tier"] 
+			#roll to learn the recipe
+			learnskills = [cs.arcana, cs.insight, cs.nature]
+			la = max(learnskills)
+			learnlist = ["Arcana", "Insight", "Nature"]
+			learndex = learnskills.index(la)
+			lskill = learnlist[learndex]
+			lmc = (10 if c.csettings.get("talent", False) and la.prof else None)
+			learning = la.d20(far, rr_num, lmc) + ("+1d4[guidance]" if parse.get("guidance") else "") + misc_bonus + learn_bonus
+			learn_check = vroll(learning)
+			#process if they learned the recipe
+			if learn_check.total < lcheck:
+				learned = 0
+			else:
+				learned = 1
+			display = f''' embed -title "{name} would like to study alchemy!" -color {color} -thumb {image} -desc "You decide to spend your time studying alchemy. Who knows what secrets you\'ll unlock?\n\n\n" '''
+			c.mod_cc(cc, -int(hcost))
+			hours = character().cc_str(cc)
+			prevXP = float(get("xp",0))
+			newTotalXP = prevXP+xpEarned
+			character().set_cvar("xp",newTotalXP)
+			cost = costc*tier
+			total_coin = coins.modify_coins(gp=-cost)
+			if found == 1:
+				display += f''' -f "Researching...|**DC {find_dc}**\n **{fskill}:**{find_check}\nYou found some interesting studies and are concocting an idea...\n\n\n" '''
+				if learned == 1:
+					display += f' -f "Time to theorycraft...|**DC {lcheck}**\n**{lskill}:** {learn_check}." -f "You\'ve learned how to craft:\n\n **{NewRecipe}**\n{desc}\n**Required Materials:**\n{mats}" '
+					recipes["Alchemy Compendium"].update({NewRecipe: 1})
+					recipes = dump_json([[x, y] for x,y in recipes.items()])
+					character().set_cvar("recipes", recipes)
+				else:
+					display += f' -f "Time to theorycraft...|**DC {lcheck}**\n **{lskill}:** {learn_check}.\nHmm... the idea needs further development. *No recipe was uncovered.*"'
+			else:
+				display += f' -f "Researching...|**DC {find_dc}**\n **{fskill}:**{find_check}\nYou didn\'t find anything that piqued your interest."'
+        
+#I am only including Alchemy in this example, because KibblesTasty has that released for free on their Patreon and on Reddit. If you want to add more to this, you will need to do it yourself following the examples you see above.
+
+		if "cost" == "error":
+			err("WORDS HERE.") #There might be some crafting professions you include that you feel they should just have all the recipes for, for example how to write spell scrolls or maybe creating poisons. In those situations, they will try to learn them anyway (people forget or don't read all the instructions) and this message is here to tell them they don't need to study that crafting profession, because it will return error for cost.
+      
+      #The below text explains how many hours were spent and the cost spent researching the recipe. They can also gain XP on my server, so you can edit that as you like.
+		display += f' -f "*You spent **{hcost} hours** and **{cost} gp** researching and experimenting in your study. You gained **{xpEarned} xp** Any recipes you found have been added to your recipe list in !recipes book. If you see the cost is \'errorgp\', then you tried to learn recipes from a profession you already know all the recipes for. Minor crafting professions have no recipes to learn. Running this alias cost you nothing and did not remove downtime.*" '		
+	else:
+		display = f' -title "{name} wants to research a recipe... but..." -desc "You don\'t have enough time to do that!" ' #If they run the command with less than 3 hours, it will show them this message and not charge them any time or money or award XP.
+    
+#Like the other alises, this alias' footer shows you pertinent information about your character's stats.
+newcoins = coins.get_coins()
+newcoins = int(newcoins["gp"])
+display += f''' -footer "{name}:<{c.hp_str()}> | GP: {newcoins} | Downtime Left: <{hours}> | Craft system - !recipes & !craft" -thumb {pic} -color {color} '''
+return display
+</drac2>
