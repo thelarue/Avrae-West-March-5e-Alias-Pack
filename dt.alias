@@ -1,0 +1,53 @@
+<drac2>
+dt = "Downtime"
+LR = "Long Rests"
+c = character()
+c.create_cc_nx(dt,0,100,'none','default',reset_by='100')
+coins = c.coinpurse
+a = &ARGS&
+x = '&1&'
+x = x.lower()
+dtrecharge=100
+lrcharge=7
+pic = "Replace this text with an image you want to use to represent downtime"
+
+#The above is a lot of variable creating. It also creates downtime if the player forgot to run the setup alias. I would recommend forcing everyone to run setup anyway.
+
+#The below is a description of how downtime works on my server. Feel free to change this up, obviously.
+f= "Description|Every IRL week you have 100 hours to spend whenever you like. You recharge these hours on Sunday by using !dt recharge. There are no timers for the commands that use downtime. Below you will find a quick list of all commands that use downtime, a bit about them, and whether or not you can do them while on adventure.\n\n\n**!work** | Go to work and earn GP or maybe find loot. Some jobs have complication chances. | Unavailable on adventure.\n\n**!carouse** | Socialize with people to gain influence points, but complications might occur. | Unavailable on adventure.\n\n**!venture** | Form a party of up to 5 characters and venture into the wilds! You might find loot and encounters out there... | Unavailable on adventure.\n\n**!research** | Characters who can copy down spells into a spellbook can use this to find spells to learn once a week. | Available on adventure.\n\n**!recipes** | You can find recipes to craft. | Available on adventure.\n\n**!craft** | Craft something for yourself or to sell to other players. | DM will allow if feasible.\n\n**!qt** | Spend quality time with another character to earn Bond Points and learn manuevers with that character. | Available on adventure.\n\n**!tc** | Venture into Garden\'s gigadungeon to earn XP! | Unavailable on adventure.\n\n**!col** | Fight in the coliseum for XP, GP, and Glory! | Available on adventure.\n\n**!rest** | Used to track long and short rests. Long rests use up to 7 charges per rest before pulling from downtime. | Available on adventure."
+
+display = f'''embed -title "{name} checks their downtime!" -desc "{f}"'''
+
+#The below code means: "If the user typed !dt recharge, then do this." This code tells the alias to fill up downtime and long rests to full.
+if x in "recharge":
+	c.mod_cc(dt,+dtrecharge)
+	c.mod_cc(LR,+lrcharge)
+	display = f'''embed -title "{name} gains back their downtime and long rests!" -desc "__**Don\'t forget to set your lifestyle this week!**__ Do so by using !dt [poor|modest|wealthy]. Learn more about these using !dt lifestyle.\n\n!work for GP | !carouse for influence | !research spells | !recipes and !craft for crafting | !qt for quality time and bonds | !tc for PvE | !col for PvP | !rest for long and short rests" '''
+ 
+ #This means "If the user typed !dt lifestyle, do this." In this case, it shows a message about how lifestyle works.
+if x in "lifestyle":
+	display = f'''embed -title "{name} would like to set their lifestyle!" -desc "Once a week, preferably on Sunday, you can change or maintain your lifestyle. Your lifestyle determines your expenses and will change your lifestyle modifier that is used for various downtime activities such as working (!work) or when carousing (!carouse).\n\nWhen you run this command with arguments (such as !lifestyle poor, modest, or wealthy), it will deduct the weekly lifestyle cost from your coinpurse and set your lifestyle to whatever you chose. Please run this command every week even if you decide you are keeping the same lifestyle. See below for further details." -f "**Poor**|**Cost of Living:** 5gp **Modifier:** -3\nYou live life sufficiently for the week eating meager food and barely taking care of yourself." -f "**Modest**|**Cost of Living:** 20gp **Modifier:** +0\nYou keep yourself clean and don\'t appear as a total trainwreck to others." -f "**Wealthy:**|**Cost of Living:** 50gp **Modifier:** +3\nYou live a life of luxury and maintain a higher social status than others." '''
+  
+#The following pieces are all just "If the user typed !dt poor or modest or wealthy, do the corresponding thing."
+if x in "poor":
+	display = f'''embed -title "{name} has fallen on hard times." -desc "Your lifestyle has been set to poor, you poor, poor person you. Your expenses were automatically removed from your coinpurse." '''
+	c.set_cvar("Lifestyle", "Poor")
+	coins.modify_coins(gp=-7)
+	pic = "YOUR IMAGE URL HERE"
+if x in "modest":
+	display = f'''embed -title "{name} is doing well." -desc "Your lifestyle has been set to modest. Your expenses were automatically removed from your coinpurse." '''
+	c.set_cvar("Lifestyle", "Modest")
+	coins.modify_coins(gp=-20)
+	pic = "YOUR IMAGE URL HERE"
+if x in "wealthy":
+	display = f'''embed -title "{name} is living it large!" -desc "Your lifestyle has been set to wealthy. Your expenses were automatically removed from your coinpurse." '''
+	c.set_cvar("Lifestyle", "Wealthy")
+	coins.modify_coins(gp=-50)
+	pic = "YOUR IMAGE URL HERE"
+#The below pieces just take a snapshot of any changes that may have come if they used recharge or set their lifestyle, then includes it in the footer of the message.
+newcoins = coins.get_coins()
+newcoins = int(newcoins["gp"])
+hours = c.get_cc(dt)
+display += f'embed -footer "{name}:<{c.hp_str()}> | GP: {newcoins} | Downtime Left: <{hours}> | Craft system - !recipes & !craft" -thumb {pic} -color {color} '
+return display
+</drac2>
