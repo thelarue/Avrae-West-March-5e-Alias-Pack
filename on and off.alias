@@ -1,0 +1,7 @@
+embed <drac2>
+character().set_cvar("Adventure", "On")
+return f' -desc "{name} goes on an adventure! You can use !garden daily to automatically add your daily adventure XP and GP. Some downtime activities are restricted including: some bonding activties, carousing, work, recipe gathering, and Training Center." '
+</drac2>
+
+
+And for off, its the same as above, but with "Off" and a different description. You should change the description anyway because its very specific to my server.
