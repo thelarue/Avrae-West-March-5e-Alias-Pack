@@ -1,0 +1,43 @@
+embed <drac2>
+c = character()
+inf = "InfluencePoints"
+ip = "InspirationPoints"
+fp = "FatePoints"
+q = int(get(inf))
+w = int(get(ip))
+e = int(get(fp))
+pic = "https://cdn.discordapp.com/attachments/958785997313810462/976968359025451048/SGI_94.png"
+
+args = &ARGS&
+parse = argparse(args)
+
+if_num = 0
+ip_num = 0
+fp_num = 0
+inf_mod = parse.get('inf') #-inf
+ip_mod = parse.get('ip') #-ip
+fp_mod = parse.get('fp') 
+if "-inf" in args:
+	if_num = inf_mod[0]
+if "-ip" in args:
+	ip_num = ip_mod[0]
+if "-fp" in args:
+	fp_num = fp_mod[0]
+
+if_new = q + int(if_num) if q + int(if_num) <= proficiencyBonus else proficiencyBonus
+if_new = 0 if q + int(if_num) < 0 else if_new
+c.set_cvar(inf, str(if_new))
+
+ip_new = w + int(ip_num) if w + int(ip_num) <= proficiencyBonus else proficiencyBonus
+ip_new = 0 if w + int(ip_num) < 0 else ip_new
+c.set_cvar(ip, str(ip_new))
+
+fp_new = e + int(fp_num)
+fp_new = 0 if e + int(fp_num) < 0 else fp_new
+c.set_cvar(fp, str(fp_new))
+
+if args:
+	return f' -title "{name} changes their points!" -desc "Inspiration Points: {InspirationPoints}\nInfluence Points: {InfluencePoints}\nFate Points: {FatePoints}" -footer "Spend your Inspiration Points to do cool things! Spend Influence Points to get invested in an adventure. DMs can spend your Fate Points to tie your character into the story. Use !points -inf #, -ip #, and -fp # to add or subtract points from these pools." '
+else:
+	return f' -title "Points" -desc "Use with !points -ip, -inf, and/or -fp [+|-]# to add or subtract any number of points from your inspiration, influence, and fate pools. You can pool inspiration and influence points up to your proficiency modifier." -f "**Inspiration Points**|Use your inspiration points to do cool things!\n**1 Point - Inspired!** Use the -inspired snippet to grant yourself advantage on any skill, save, or attack roll.\n**2 Points - Resisted!** After failing a saving throw, you can choose to succeed instead.\n**3 Points - Heroic Action!** On your turn, you may take an additional action. All other rules still apply.\n**4 Points - Defy Death!** When you would drop to 0 hit points, you can instead drop to 1 hit point and gain two levels of exhaustion.\n**5 Points - Unstoppable!** You will not fall unconscious until you take lethal damage (negative your maximum health) or 1 minute passes; you can disregard any condition that would automatically kill or destroy you until the minute is up, and you are under the effect of the Freedom of Movement spell. You will die (or de-level, your choice) at the end of the minute if you have three failed death saving throws. You gain five levels of exhaustion regardless at the end of the minute." -f "**Influence Points**|Use your influence points to insert yourself into the story of an adventure. You can spend influence points to know an NPC, group, or other thing related to the adventure you are on. The DM will work with you when you spend your point. You can spend more than 1 point in any adventure." -f "**Fate Points**|DMs can use your Fate Points to tie you into the story, and it can be used for drama. (Note: When modifying your fate points, you should do that separately from modifying the other two points.)" -footer "{name}: <{c.hp_str()}> | Inspiration: {InspirationPoints} | Influence: <{InfluencePoints}> | Fate <{FatePoints}> Alias by Ru#9223" -thumb {pic} -color {color} '
+</drac2>
