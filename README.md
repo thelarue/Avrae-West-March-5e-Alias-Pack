@@ -7,3 +7,13 @@ I also bolstered the potion overings in Alchemy, which is the only crafting prof
 
 
 I have adapted their works and a lot of this was also heavily helped along with the help of the Avrae Dev Server. I literally could not have done this without a bunch of help from them.
+
+
+This pack relies on existing workshop aliases and aliases you can find on the Avrae Dev Server, namely:
+
+New xp from workshop
+Verbose character tools from workshop
+!tool from dev server
+!bag from dev server
+
+There might be others, but that is on you, my friend.
