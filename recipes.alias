@@ -110,22 +110,24 @@ if args: #if the command has arguments, it will look through this if block
 			if 'Alchemist\'s Supplies' not in tools: #On my server, you must be trained in Alchemist Supplies to learn alchemy and craft alchemy recipes.
 				err("You cannot learn alchemy unless you are trained in alchemist supplies.") #error message when they don't have proficiency or forgot to put it in their !tool
 			pic = "IMAGE URL HERE"
-			recipes = dict(load_json(get("recipes", '[["Alchemy Compendium", {}]]')))
+			recipes = dict(load_json(get("recipes", '[["Alchemy Compendium", {}]]'))) #This gets the character variable created from setup and looks at it. That code doesn't actually set this up, you need to write it in yourself.
+			
 			#recipe variables
-			MasterRecipes = load_yaml(get_gvar("04077b3f-2c6f-4422-a50a-ef82de1b8564"))
-			AllRecipes = list(MasterRecipes.keys())
-			KnownRecipes = list(recipes["Alchemy Compendium"].keys())
-			PossibleRecipes = [x for x in AllRecipes if x not in KnownRecipes]
-			if PossibleRecipes:
-				NewRecipe = randchoice(PossibleRecipes)
-			else:
+			MasterRecipes = load_yaml(get_gvar("04077b3f-2c6f-4422-a50a-ef82de1b8564")) #This loads a global variable that has all the recipes. To see what it looks like, use !gvar # to see it. You will need to write your own for each profession you create.
+			AllRecipes = list(MasterRecipes.keys()) #Makes the previous code into a list and turns AllRecipes into the key for that list.
+			KnownRecipes = list(recipes["Alchemy Compendium"].keys()) #Ditto but with the thing loaded from setup
+			PossibleRecipes = [x for x in AllRecipes if x not in KnownRecipes] #This says, compare these two lists, if an entry in MasterRecipes is not in Alchemy Compendium, then add that to this list. This list is every recipe the character doesn't already know, that way there are no chances for duplicates.
+			if PossibleRecipes: #If they can still learn a recipe
+				NewRecipe = randchoice(PossibleRecipes) #This picks a random recipe from the list of recipes the character doesn't know yet
+			else: #If they cannot learn anymore recipes, it returns this msg about no recipes being learnable.
 				return f''' embed -title "{name} has learned everything there is to know about alchemy!" -color {color} -thumb {image} -desc "You literally cannot learn more alchemy. Go do something else or beg Ru for an update. This command did not deduct any downtime" '''
-			desc = MasterRecipes[NewRecipe]["desc"] 
-			ctime = MasterRecipes[NewRecipe]["ctime"] 
+			desc = MasterRecipes[NewRecipe]["desc"] #This assigns variables to pieces of the random entry choosen, so for example, the description of the random recipe is now stored in desc.
+			ctime = MasterRecipes[NewRecipe]["ctime"] #etc etc
 			lcheck = MasterRecipes[NewRecipe]["lcheck"] 
 			cdc = MasterRecipes[NewRecipe]["dc"] 
 			mats = MasterRecipes[NewRecipe]["mats"] 
 			tier = MasterRecipes[NewRecipe]["tier"] 
+			
 			#roll to learn the recipe
 			learnskills = [cs.arcana, cs.insight, cs.nature]
 			la = max(learnskills)
@@ -140,21 +142,23 @@ if args: #if the command has arguments, it will look through this if block
 				learned = 0
 			else:
 				learned = 1
+			
+			#This is the overall display that is given regardless of successes or failures.
 			display = f''' embed -title "{name} would like to study alchemy!" -color {color} -thumb {image} -desc "You decide to spend your time studying alchemy. Who knows what secrets you\'ll unlock?\n\n\n" '''
-			c.mod_cc(cc, -int(hcost))
-			hours = character().cc_str(cc)
-			prevXP = float(get("xp",0))
-			newTotalXP = prevXP+xpEarned
-			character().set_cvar("xp",newTotalXP)
-			cost = costc*tier
-			total_coin = coins.modify_coins(gp=-cost)
+			c.mod_cc(cc, -int(hcost)) #This deducts hours from downtime. hcost was defined earlier as 4. If you decide to make it take more or less time, you only need to change the number in hcost to whatever you want it to be.
+			hours = character().cc_str(cc) #This takes a snapshot of how many hours of downtime are left so it can be displayed to the user later.
+			prevXP = float(get("xp",0)) #This begins the process of adding XP to the character for trying to research a new recipe regardless of success or failure.
+			newTotalXP = prevXP+xpEarned #This takes the number taken from the XP the character already has and adds the XP as determined at the top.
+			character().set_cvar("xp",newTotalXP) #This sets the character variable for experience to the new total.
+			cost = costc*tier #This calculates how much it costs to try to find and learn a new recipe.
+			total_coin = coins.modify_coins(gp=-cost) #This removes the cost from your gold. This system ignores all other coins.
 			if found == 1:
 				display += f''' -f "Researching...|**DC {find_dc}**\n **{fskill}:**{find_check}\nYou found some interesting studies and are concocting an idea...\n\n\n" '''
 				if learned == 1:
 					display += f' -f "Time to theorycraft...|**DC {lcheck}**\n**{lskill}:** {learn_check}." -f "You\'ve learned how to craft:\n\n **{NewRecipe}**\n{desc}\n**Required Materials:**\n{mats}" '
-					recipes["Alchemy Compendium"].update({NewRecipe: 1})
-					recipes = dump_json([[x, y] for x,y in recipes.items()])
-					character().set_cvar("recipes", recipes)
+					recipes["Alchemy Compendium"].update({NewRecipe: 1}) #If they learned the recipe based on the above roll, this line adds the name of the recipe to their Alchemy Compendium. For other professions, you will need to name this something else.
+					recipes = dump_json([[x, y] for x,y in recipes.items()]) #This makes sure the recipe list doesn't get whack, for lack of better words.
+					character().set_cvar("recipes", recipes) #This saves the new Alchemy Compendium
 				else:
 					display += f' -f "Time to theorycraft...|**DC {lcheck}**\n **{lskill}:** {learn_check}.\nHmm... the idea needs further development. *No recipe was uncovered.*"'
 			else:
