@@ -1,0 +1,37 @@
+embed <drac2>
+c = character()
+dt = "Downtime"
+LR = "Long Rests"
+hours = c.get_cc(dt)
+lrc = c.cc_str(LR)
+args = &ARGS&
+
+#no args
+display = f' -title "{name} wants to take a rest..." -desc "To take a long rest, use !rest long. This command will always try to pull from your long rest counters first. If you have none, it will take 8 hours from your downtime. \n\nTo take a short rest, use !rest short. This command will take 1 hour from your downtime." -footer "{name}: <{c.hp_str()}> | Long Rests Left: {lrc} | Downtime Left: <{hours}>" -thumb {image} -color {color} '
+
+#long rests
+if args:
+    if args[0].lower() in "long":
+        if c.get_cc(LR) == 0:
+            if c.get_cc(dt) < 8:
+                return f' -title "Not enough time." -desc "You don\'t have enough time to take a long rest. You have {dt} hours left this week. Long rests recharge on Sunday along with Downtime." -footer "{name}: <{c.hp_str()}> | Long Rests Left: {lrc} | Downtime Left: <{hours}>" -thumb {image} -color {color} '
+            else:
+                x = "Could not detected a long rest charge. You spent 8 hour of downtime resting."
+                c.mod_cc(dt,-int(8))
+                hours = c.get_cc(dt)
+        else:
+            x = "You spent 1 of your long rest charges. You regain charges on Sunday."
+            c.mod_cc(LR,-int(1))
+            lrc = c.cc_str(LR)
+        return f' -title "{name} takes a long rest." -desc "Sleep tight! Use !lr to gain the benefits of a long rest. Use !lr ? for more details. {x}" -footer "{name}: <{c.hp_str()}> | Long Rests Left: {lrc} | Downtime Left: <{hours}>" -thumb {image} -color {color} '
+    if args[0].lower() in "short":
+        if c.get_cc(dt) == 0:
+            return f' -title "Not enough time." -desc "You don\'t have enough time to take a short rest. Downtime recharges on Sunday." -footer "{name}: <{c.hp_str()}> | Long Rests Left: {lrc} | Downtime Left: <{hours}>" -thumb {image} -color {color} '
+        else:
+            x = "You spend 1 hour of downtime to take a short rest. You regain downtime charges on Sunday."
+            c.mod_cc(dt,-int(1))
+            hours = c.get_cc(dt)
+        return f' -title "{name} takes a short rest." -desc "Take it easy! Use !sr to gain the benefits of a short rest. Use !sr ? for more details. {x}" -footer "{name}: <{c.hp_str()}> | Long Rests Left: {lrc} | Downtime Left: <{hours}>" -thumb {image} -color {color} '
+
+return display
+</drac2>
