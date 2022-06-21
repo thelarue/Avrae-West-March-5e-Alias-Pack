@@ -1,0 +1,177 @@
+embed <drac2>
+c = character()
+cs = c.skills
+coins = c.coinpurse
+cc = "Downtime"
+hours = c.cc_str(cc)
+recipes = load_json(get("recipes"))
+rr_num = c.csettings.get("reroll", None)
+G = '`'*3
+H = '"'
+n = '\n'
+# The above sets a lot of stuff. And below as well. These things are explained in the recipes file.
+
+mprofList = ["Alchemy","Poisoncraft","Cooking","Blacksmithing","Leatherworking","Woodcarving","Wandwhittling","Enchanting","Runecarving","Scrollscribing","Tinkering"]
+mdisplay = []
+mdisplay.append(f"Major Crafting Professions:|{G}")
+mdisplay.append(''.join([f"{x:20}" for x in mprofList]))
+mdisplay.append(G)
+
+sproflist = ["Tailoring","Carpentry","Jewelcrafting","Brewing","Painting","Glassblowing","Masonry","Cobbling","Weaving"]
+sdisplay = []
+sdisplay.append(f"Minor Crafting Professions:|{G}")
+sdisplay.append(''.join([f"{x:20}" for x in sproflist]))
+sdisplay.append(G)
+
+# Load arguments and hope they make sense.
+args = &ARGS&
+parse = argparse(args)
+cType = '&1&' if '&1&' in args else "" #I probably didn't need to do this, but I am too lazy to change it now. It assigns the first thing after the command to the variable cType. Example !craft alchemy means cType would be alchemy.
+item = '&2&' if '&2&' in args else "" #This assigns the second thing after the command to variable item. This is meant to be the LITERAL FULL NAME of the item they want to craft. So "Potion of Healing" not potion or Potion of Healing or potion of healing -- it must be "Potion of Healing with quotations and the same capitalization. There is a way to make this less awful, but I won't be fixing this for a long while yet.
+
+checksmade = 1 #The checks the alias makes is set to 1 automatically
+checks = parse.get('c')
+if "-c" in args:
+	checksmade = f'+{checks[0]}' #If the player uses -c #, the checks the alias makes is set to whatever that number is.
+spell = ""
+spell_name = parse.get('spell') #If the player uses -spell "Spell Name", it leads to the code block below and saves the name of the spell to a variable.
+if "-spell" in args:
+	spell += f'{spell_name[0]}'
+doublecheck = int(c.cc(cc).value) #This sets a variable of current available downtime #
+checktime = checksmade*2 #Each check made takes 2 hours of downtime. This takes the checks the user will make and multiples it by 2.
+misc_bonus = ""
+bonus = parse.get('b') #If the user uses -b #, they will get a bonus to crafting as dictated by server rules or DM rules or whoever.
+if "-b" in args:
+	misc_bonus += f'+{bonus[0]}'
+advbase = parse.adv(boolwise=True) #You can get adv and dis as dictated etc etc
+
+display = ""
+pic = "YOUR IMAGE URL HERE"
+
+#loading tools
+if get("pTools"):
+	tools = get("pTools")
+else:
+	tools = ""
+if get("eTools"):
+	etools = get("eTools")
+else:
+	etools = ""
+	
+if args:
+	if args[0].lower() in ("alchemy","other professions","they need to all be lowercase","and this should only be professions that require tools"):
+		if not get("pTools"): #If !tool isn't set up, the bot will tell them they need to set it up for this alias to work.
+				err("Forget to set up your !tool? You need a tool proficiency for the crafting profession you entered. If you put in expertise in the required tool, you also need to add the regular proficiency via !tool pro toolname. Check !help craft for more details.")
+	if doublecheck < checktime: #If they don't have enough downtime, it will tell them so.
+		err("Not enough time! You don\'t have enough time left to make the check entered. Each check costs 2 hours. If you didn\'t enter a check, then you need at least 2 hours to do one check.")
+	if args[0].lower() in "discard": #If they do !craft discard, it discards any craft saved on their character by deleting the data.
+		c.delete_cvar("c_item")
+		c.delete_cvar("c_dc")
+		c.delete_cvar("c_progress")
+		c.delete_cvar("c_goal")
+		c.delete_cvar("c_failure")
+		if get("c_spell"):
+			c.delete_cvar("c_spell")
+		return f' -title "{name} wants to start over." -desc "You discarded all your materials and are free to try again." '
+	if args[0].lower() in "current": #If they do !craft current, it will display the craft saved to their character.
+		if not get("c_item"):
+			return f' -desc "You aren\'t working on anything yet." '
+		item = get("c_item")
+		progress = get("c_progress")
+		goal = get("c_goal")
+		fails = get("c_failure")
+		return f' -title "{name} is working on {item}." -desc "You are currently working on {item}.\n**{progress}/{goal}**\n{fails} failures\n\nTo spend time crafting, please use !craft (profession nickname) Item Name in Quotes and the number of checks you would like to make. An example of how it should look is !craft alch <Potion of Healing> 2, but replace the <> with quotations. If you leave the number blank, it will default to 1 check." '
+	if get("c_item") and item not in get("c_item"): #If they try to craft a different item while they already have a saved item on their character, it will prevent them from trying. They can only work on one craft at a time. Hence why you can discard anything you are working on.
+		item = get("c_item")
+		progress = get("c_progress")
+		goal = get("c_goal")
+		fails = get("c_failure")
+		if get("c_spell"):
+			spell = get("c_spell")
+		else:
+			spell = ""
+		return f' -title "You are already working on something else!" -desc "You are already working on crafting {spell} {item}. Your progress so far: {progress}/{goal} with {fails} failure(s). If you would like to continue making this item, please use !craft <craftType> <item name in quotations>. If you would like to start a new project, use !craft discard to begin anew.\n\n**WARNING ALL PROGRESS AND CRAFTING MATERIALS USED WILL BE DISCARDED WHEN YOU USE !craft discard.**" '
+
+	if cType.lower() in "alchemy": #Again, only showing alchemy.
+		if 'Alchemist\'s Supplies' in tools: #Checking that the character has proficiency in Alchemist Supplies as was set up in !tool. If they are proficiency and it gives an error that they are not, they need to set up their !tool
+			if 'Alchemist\'s Supplies' in etools: #This checks if they have expertise as set up in !tool. The same applies here as above. IT won't give expertise unless its been properly setup in !tool
+				prof_bonus = proficiencyBonus*2
+			else:
+				prof_bonus = proficiencyBonus
+			masterRecipes = load_yaml(get_gvar("04077b3f-2c6f-4422-a50a-ef82de1b8564")) #loads the alchemy craft info
+			AllRecipes = list(masterRecipes.keys())
+			knownRecipes = recipes[0][1].keys()
+			if item in knownRecipes: #This checks if the item they are trying to craft is one they actually know how to make.
+				ctime = ((int(masterRecipes[item]["ctime"]))*2) #checks required to make item, which is multiplied by 2 because each check takes 2 hours
+				goal = int(masterRecipes[item]["ctime"])
+				dc = masterRecipes[item]["dc"] #the DC to beat to mark a success
+				mats = masterRecipes[item]["mats"] #the mats you need to remove from your bags to craft the item
+				craftskills = [cs.intelligence, cs.wisdom] #The attributes accepted for use of Alchemist Supplies in this alias are intelligence and wisdom
+				ca = max(craftskills) #This chooses the highest of the two attributes
+				amc = (10 if c.csettings.get("talent", False) else None) #This was explained in recipes
+				pbonus = prof_bonus + int(ca) #This grants the proficiency bonus for using the tool, and makes it higher if they have expertise as dictated by !tool
+				crafting = ca.d20(rr_num, amc, mod_override=pbonus) + misc_bonus #This is the dice expression for rolling. To learn more about what this all means, I would go to the Avrae Dev Server and use the designated channel to do !function .d20 and it should illuminate what this all means.
+				c.set_cvar_nx("c_item", item) #These next few lines create the data about the craft if it isn't already there and stores details about the craft.
+				c.set_cvar_nx("c_dc", dc)
+				c.set_cvar_nx("c_goal", goal)
+				c.set_cvar_nx("c_progress", 0)
+				looping = 0 #I set the looping to 0 so when I begin the loop, it will count up to the number of checks made.
+				while looping < checksmade: #So while looping is less than the number of checks the player wants to make (which defaults to 1 if they didn't specify) do this:
+					craft_check = vroll(crafting) #Do a crafting check based on the above info
+					looping += 1 #Adds 1 to Looping
+					if craft_check.total >= dc: #If the roll beat the DC..
+						new = int(get("c_progress"))+1 #Add 1 to the progress of the craft
+						c.set_cvar("c_progress", new) #Update the progress of the craft
+						c.set_cvar_nx("c_failure", 0) #Reset the failures to 0, if any were recorded previously
+					if craft_check.total < dc: #If the roll didn't beat the DC...
+						c.set_cvar_nx("c_failure", 0) #Sets failure to 0 if no failure was detected so far
+						new = int(get("c_failure"))+1 #Increase the failure by 1
+						c.set_cvar("c_failure", new) #Update failures saved
+						if int(get("c_failure")) >= 3: #If this detects 3 failures, it deletes your entire craft and tells you about it. Reminder: this only accumulates failures in succession. Anytime you succeed, failures resets to 0.
+							c.delete_cvar("c_item")
+							c.delete_cvar("c_dc")
+							c.delete_cvar("c_progress")
+							c.delete_cvar("c_goal")
+							c.delete_cvar("c_failure")
+							timespent = looping*2
+							c.mod_cc(cc, -int(timespent))
+							hours = c.cc_str(cc)
+							display = f' -title "Mistakes were made..." -f "**Failure!**|You failed 3 times in a row against a DC {dc}. The last check you made was {craft_check}. You are unable to finish crafting {item}. You lose all progress and have to start over.\n\nYou spent {timespent} hours crafting." '
+							break #This breaks out of the while loop
+					if get("c_progress") == get("c_goal"): #If your progress = the goal, meaning, if you have all necessary successes, it deletes the craft data and tells you that you finished making the item.
+						c.delete_cvar("c_item")
+						c.delete_cvar("c_dc")
+						c.delete_cvar("c_progress")
+						c.delete_cvar("c_goal")
+						c.delete_cvar("c_failure")
+						timespent = looping*2 #This takes the amount of loops made and multiples it by 2, since each check costs 2 hours. 
+						c.mod_cc(cc, -int(timespent)) #This deducts downtime based on the above. So for example, if they were going to make 10 checks, but it only took 2 checks to succeed, it will only deduct 4 hours and not 20.
+						hours = c.cc_str(cc) #Takes a snapshot of current downtime hours for display later.
+						display = f' -title "{name} made {item}!" -f "**Completed!**|You successfully crafted {item}. You will need to add it to your !bag yourself at this time.\n\nYou spent {timespent} hours crafting."'
+						break
+					if looping == checksmade: #If looping matches the amount of checks the player wanted to make, it stops the loop and updates the player on the status of the craft.
+						progress = get("c_progress")
+						failure = get("c_failure")
+						timespent = looping*2
+						display = f' -title "{name} would like to create {item}!" -f "**Progress Report**|**{progress}/{goal}** successful checks.\n\nYou have accumulated {failure} failures.\n\nYou spent {timespent} hours crafting."'
+						c.mod_cc(cc, -int(timespent))
+						hours = c.cc_str(cc) 
+						break
+				pic = "YOUR IMAGE URL HERE"
+			else:
+				err("You don\'t know that recipe! Or if you do know it, check spelling, type its name exactly as it appears in your recipe book (capitalization DOES matter) and make sure you enter it in quotations.")
+		else:
+			err("You are missing proficiency in Alchemist\'s Supplies. If you are proficient, please add the proficiency using !tool pro tool name and try again. Otherwise you will need to learn the tool using !learn.")
+#Just like with recipes, I'm only showing KibblesTasty's Alchemy since I know that is free to view. If you want to use this crafting system, you should sub to their patreon and build this alias further yourself! Just don't share it publically, because that is theft.
+else:
+	if get("c_item"):
+		progress = get("c_progress")
+		goal = get("c_goal")
+		fails = get("c_failure")
+		display = f''' -title "{name} is working on {item}." -desc "You are currently working on {item}.\n**{progress}/{goal}**\n{fails} failures\n\nTo spend time crafting, please use !craft profession \'Item Name\' and the number of checks you would like to make. An example of how it should look is !craft alch \'Potion of Healing\' 2. If you leave the number blank, it will default to 1 check." '''
+	display = f''' -title "Let\'s get crafting!" -desc "You aren\'t currently crafting anything. Get started by picking a recipe from a crafting profession and enter !craft profession \'Recipe Name\'. This alias defaults to making 1 check, which takes 2 hours of your downtime. If you want to make more checks, you can use -c # to make # checks. Each 1 check costs 2 hours of downtime. If you are on an adventure, you can only craft when there is enough time in the adventure to make a 2 hour check. Ask your DM before you make any checks.\n\nIf you are wandwhittling or scrollscribing, you must include the name of the spell using -spell {H}Spell Name{H}. Example: !craft wand Cantrip -spell {H}Fire Bolt{H}" -f "Failures|As you craft, you will notice you gain failures. If you gain 3 failures in a row, the craft fails entirely and you need to start over from scratch. This means if a craft cost you a legendary reagent and you got 3 failures, you would need to spend another legendary reagent to start over." -f "{n.join(mdisplay)}" -f "{n.join(sdisplay)}" '''
+newcoins = coins.get_coins()
+newcoins = int(newcoins["gp"])
+display += f''' -footer "{name}:<{c.hp_str()}> | GP: {newcoins} | Downtime Left: <{hours}> | Craft system - !recipes & !craft" -thumb {pic} -color {color} '''
+return display
+</drac2>
