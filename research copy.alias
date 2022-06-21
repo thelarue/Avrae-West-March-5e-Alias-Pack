@@ -1,0 +1,58 @@
+embed <drac2>
+
+c = character()
+cc = "Downtime"
+coins = c.coinpurse
+
+#This exists solely to make copying spells easier for the user. If they include school as an argument, it will give them halfoff as intended, for example evo school wizard wants to learn an evo spell they found? They use !research copy "Spell Name" school and it will give it to them half price and half time.
+
+spells = dict(load_json(get("LibrarySpells")))
+
+fout = []
+fspell = spells["First Entry"]["name"]
+ftime = spells["First Entry"]["time cost"]
+fgold = spells["First Entry"]["gold cost"]
+
+sout = []
+sspell = spells["Second Entry"]["name"]
+stime = spells["Second Entry"]["time cost"]
+sgold = spells["Second Entry"]["gold cost"]
+
+tout = []
+tspell = spells["Third Entry"]["name"]
+ttime = spells["Third Entry"]["time cost"]
+tgold = spells["Third Entry"]["gold cost"]
+
+display = f''' -title "{name} would like to copy a spell!" -desc "To copy a spell, simply enter !research copy \'Spell Name\'. If you are able to copy the spell down for less time and cheaper, make sure you use !research copy \' Spell Name\' school instead.\n\nYou have the following spells in your borrowed library book:" -f "{fspell}|**Time Cost:** {ftime} | **Gold Cost:** {fgold}" -f "{sspell}|**Time Cost:** {stime} | **Gold Cost:** {sgold}" -f "{tspell}|**Time Cost:** {ttime} | **Gold Cost:** {tgold}"  '''
+
+args = &ARGS&
+parse = argparse(args)
+if parse.get("school"):
+	halfoff = 2
+else:
+	halfoff = 1
+	
+if args:
+	if args[0].lower() in fspell.lower():
+		dtcost = ftime//halfoff
+		gpcost = fgold//halfoff
+		c.mod_cc(cc, -int(dtcost))
+		coins.modify_coins(gp=-gpcost)
+		display = f''' -title "{name} copies down {fspell}!" -desc "You spent {dtcost} hour(s) and {gpcost} gp copying down {fspell}. You still need to manually add this spell to your character sheet." '''
+	if args[0].lower() in sspell.lower():
+		dtcost = stime//halfoff
+		gpcost = sgold//halfoff
+		c.mod_cc(cc, -int(dtcost))
+		coins.modify_coins(gp=-gpcost)
+		display = f''' -title "{name} copies down {sspell}!" -desc "You spent {dtcost} hour(s) and {gpcost} gp copying down {sspell}. You still need to manually add this spell to your character sheet." '''
+	if args[0].lower() in tspell.lower():
+		dtcost = ttime//halfoff
+		gpcost = tgold//halfoff
+		c.mod_cc(cc, -int(dtcost))
+		coins.modify_coins(gp=-gpcost)
+		display = f''' -title "{name} copies down {tspell}!" -desc "You spent {dtcost} hour(s) and {gpcost} gp copying down {tspell}. You still need to manually add this spell to your character sheet." '''
+
+rt = c.get_cc(cc)
+display += f' -footer "You have {rt} hour(s) left this week. Alias written by Ru#9223." '
+return display
+</drac2>
