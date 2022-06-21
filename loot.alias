@@ -1,0 +1,99 @@
+embed <drac2>
+G = '`'*3
+n='\n'
+args = &ARGS&
+parse = argparse(args)
+if any(args):
+	ctype = '&1&'
+	tier = int('&2&')
+#trying my best
+c = character()
+coins = c.coinpurse
+cs = c.skills
+dt = "Downtime"
+intel = cs.intelligence
+med = cs.medicine #harvest dragon giant monstro undead
+arc = cs.arcana #harvest aberrations and construct
+nat = cs.nature #harvest plants
+chance = vroll('1d100')
+if chance.total in range(55,101):
+	remnant = True
+else:
+	remnant = False
+
+#The above establishes a lot of stuff that was already explained previously. This alias runs on !loot creaturetype tiernumber, so for example !loot dragon 1, would loot a tier 1 dragon... if that's how its coded. You can ignore creature type and do something else, if you like. IDK, like !loot goblin 1 for a tier 1 goblin?
+
+pic = "YOUR IMAGE URL HERE"
+
+if args:
+	if ctype.lower() in ("creature type", "creature type 2", "this is for when you think the same creature types would yield the same sort of loot"):
+		if med.prof: #this assumes the creature type harvest skill is medicine, so like if you loot a dead monster that requires medical know-how, it checks with medicine
+			bonus = int(intel) + proficiencyBonus
+		else:
+			bonus = int(intel)
+		amc = (10 if c.csettings.get("Talent", False) and bonus else None)
+		rolling = med.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+		check = vroll(rolling)
+		if ctype.lower() in "dragon": #Leaving these here so you can see why later
+			creature = "dragon"
+		if ctype.lower() in "giant":
+			creature = "giant"
+		if ctype.lower() in "monstrosity":
+			creature = "monstrosity"
+		if check.total < 8: #The DC on this is fairly low since tier 1 is the lowest. If they can't break an 8, it stops the code right here.
+			return f' -desc "Medicine Check vs DC 8: {check}\n\n{creature} cannot be harvested." '
+		if tier == 1:
+			Dict = {"20": {"result": "Nothing useful harvested!", "reward": {"Nothing":0}}, "50": {"result": "You found...", "reward": {"stuff":"1d1"}}, "70": {"result": "You found...", "reward": {"stuff":"1d1"}}, "80": {"result": "You found...", "reward": {"stuff":"1d1"}}, "100": {"result": "Rare find!", "reward": {"stuff":"1d1"}}}
+		if tier == 2:
+			if check.total < 10: #Checks if they succeeded.
+				return f' -desc "Medicine Check vs DC 10: {check}\n\n{creature} cannot be harvested." '
+			Dict = {"30": {"result": "You found...", "reward": {"stuff":"1d1"}}, "60": {"result": "You found...", "reward": {"stuff":"1d1"}}, "80": {"result": "You found...", "reward": {"stuff":"1d4"}}, "90": {"result": "Rare find!", "reward": {"stuff":"1d1"}}, "100": {"result": "Rare find!", "reward": {"stuff":"1d1"}}}
+		if tier == 3:
+			if check.total < 12:
+				return f' -desc "Medicine Check vs DC 12: {check}\n\n{creature} cannot be harvested." '
+			Dict = {"30": {"result": "You found...", "reward": {"stuff":"1d1"}}, "60": {"result": "You found...", "reward": {"stuff":"1d1"}}, "70": {"result": "You found...", "reward": {"stuff":"1d1"}}, "80": {"result": "You found...", "reward": {"stuff":"1d1"}}, "90": {"result": "Rare find!", "reward": {"stuff":"1d1"}}, "95": {"result": "Rare find!", "reward": {"stuff":"1d1"}}, "100": {"result": "Rare find!", "reward": {"stuff":"1d1"}}}
+		if tier == 4:
+			if check.total < 15:
+				return f' -desc "Medicine Check vs DC 15: {check}\n\n{creature} cannot be harvested." '
+			Dict = {"30": {"result": "You found...", "reward": {"stuff":"1d4"}}, "50": {"result": "You found...", "reward": {"stuff":"1d1"}}, "89": {"result": "You found...", "reward": {"stuff":"1d1"}}, "94": {"result": "Rare find!", "reward": {"stuff":"1d1"}}, "100": {"result": "Rare find!", "reward": {"stuff":"1d1"}}}
+	elif ctype.lower() in "a single creature type":
+		creature = "construct"
+		if arc.prof: #I assume constructs would use the arcana skill. 
+			bonus = int(intel) + proficiencyBonus
+		else:
+			bonus = int(intel)
+		amc = (10 if c.csettings.get("Talent", False) and bonus else None)
+		rolling = arc.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+		check = vroll(rolling)
+		if check.total < 8:
+			return f' -desc "Arcana Check vs DC 8: {check}\n\n{creature} cannot be harvested." '
+		if tier == 1:
+			Dict = {"20": {"result": "You found...", "reward": {"stuff":"1d1"}}, "50": {"result": "You found...", "reward": {"stuff":"1d1"}}, "70": {"result": "You found...", "reward": {"stuff":"1d1"}}, "80": {"result": "You found...", "reward": {"stuff":"1d1"}}, "100": {"result": "Rare find!", "reward": {"stuff":"1d1"}}}
+
+#Just like before, I will not be doing each creature type. That's on you. YOu will see the loot all says "stuff" and that's because I don't think KibblesTasty harvest system is free, so you will need to figure this out on your own or sub to their Patreon!
+
+	else:
+		return f' -desc "Didn\'t find that creature type or tier number. Type in as much of the creature type name that makes it unique, include the tier number of the creature, and try again." '
+
+#This rolls the die for the loots. YOu will see a lot of them say 1d1, but they can be as complicated as 2d10+5 or whatever.
+	Die = vroll(f"1d100")
+	result = [Dict[x] for x in Dict if Die.total <= int(x)][0]
+	out=[]
+	if result.reward:
+		out.append(f"You collected these items from the {creature}:{G}\n")
+	for prize in result.reward:
+		out.append(f"{prize+':':<16} {roll(f'{result.reward[prize]}')}")
+	out.append(G)
+	text = f''' -title "{name} loots the {creature}!" -footer "Only 1 loot roll can be made for an individual creature." -thumb YOURURLHEREFORIMAGE -f "Roll: {Die}\n\n{result.result}\n\n{n.join(out)}" '''
+	return text
+else:
+	hours = c.get_cc(dt)
+	newcoins = coins.get_coins()
+	money = int(newcoins["gp"])
+	creatureList = ["Dragons", "Giants", "Monstrosities","Constructs", "Aberrations", "Undead*", "Plants", "Celestials", "Fiends", "Elementals", "Fey", "Humanoids"]
+	cdisplay = []
+	cdisplay.append(f"Supported Creature Types:|{G}")
+	cdisplay.append(''.join([f"{x:15}" for x in creatureList]))
+	cdisplay.append(G)
+	return f' -title "Loot the creatures!" -desc "Whenever you fight creatures that aren\'t player characters or their controlled companions, you can try to loot the creature afterwards. This includes monsters in pop-up adventures in the RP channels and even monsters you face in the Training Center. Only one person may roll for loot per creature, but the party can decide who receives the item which drops from that creature.\n\nWhile on an adventure, ask your DM if you may loot the creatures. To loot, you must type in !loot creatureType tier#. For example, !loot humanoid 3 for a Tier 3 Humanoid. If you are not sure what the creature type is, ask your DM or if you are out in the open world you can ask DMs or proctors for help." -f "{n.join(cdisplay)}\n*Special Note:* Undead are split into two groups. For ghosts and other undead with incoporeal bodies such as Shadows, use !loot ghost tier# instead. !loot undead tier# is meant for undead with physical bodies, like zombies or vampires." -footer "{name}: <{c.hp_str()}> | GP: <{money}> | Downtime Left: <{hours}>" -thumb {pic} -color {color} '
+</drac2>
