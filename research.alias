@@ -1,0 +1,89 @@
+embed <drac2>
+
+spellone = randchoice([1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,4])
+spelltwo = randchoice([1,1,1,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4])
+spellthree = randchoice([1,2,2,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5])
+
+#This alias just rolls to show people who are wizards or other spell copiers spells to copy. This lists all the spells period, BUT it doesn't list what they do -- feel free to remove spells you have no access to or include homebrew spells of your own!
+
+first = ["Absorb Elements", "Alarm", "Burning Hands", "Catapult", "Cause Fear", "Charm Person", "Chromatic Orb", "Color Spray", "Comprehend Languages", "Detect Magic", "Disguise Self", "Distort Value", "Earth Tremor", "Expeditious Retreat", "False Life", "Feather Fall", "Find Familiar", "Floating Disk", "Fog Cloud", "Frost Fingers", "Grease", "Hideous Laughter", "Ice Knife", "Identify", "Illusory Script", "Jim\'s Magic Missile", "Jump", "Longstrider", "Mage Armor", "Magic Missile", "Protection from Evil and Good", "Ray of Sickness", "Shield", "Silent Image", "Silvery Barbs", "Sleep", "Snare", "Tasha\'s Caustic Brew", "Thunderwave", "Unseen Servant", "Witch Bolt"]
+second = ["Acid Arrow", "Alter Self", "Arcane Lock", "Arcanist\'s Magic Aura", "Blindness/Deafness", "Blur", "Borrowed Knowledge", "Cloud of Daggers", "Continual Flame", "Crown of Madness", "Darkness", "Darkvision", "Detect Thoughts", "Dragon\'s Breath", "Dust Devil", "Earthbind", "Enlarge/Reduce", "Flaming Sphere", "Flock of Familiars", "Gentle Repose", "Gift of Gab", "Gust of Wind", "Hold Person", "Invisibility", "Jim\'s Glowing Coin", "Kinetic Jaunt", "Knock", "Levitate", "Locate Object", "Magic Mouth", "Magic Weapon", "Maximilian\'s Earthen Grasp", "Mind Spike", "Mirror Image", "Misty Step", "Nathair\'s Mischief", "Phantasmal Force", "Pyrotechnics", "Ray of Enfeeblement", "Rime\'s Binding Ice", "Rope Trick", "Scorching Ray", "See Invisibility", "Shadow Blade", "Shatter", "Skywrite", "Snilloc\'s Snowball Swarm", "Spider Climb", "Suggestion", "Tasha\'s Mind Whip", "Vortex Warp", "Warding Wind", "Web", "Wither and Bloom"]
+third = ["Animate Dead", "Ashardalon\'s Stride", "Bestow Curse", "Blink", "Catnap", "Clairvoyance", "Counterspell", "Dispel Magic", "Enemies Abound", "Erupting Earth", "Fast Friends", "Fear", "Feign Death", "Fireball", "Flame Arrows", "Fly", "Galder\'s Tower", "Gaseous Form", "Glyph of Warding", "Haste", "Hypnotic Pattern", "Incite Greed", "Intellect Fortress", "Tiny Hut", "Life Transference", "Lightning Bolt", "Magic Circle", "Major Image", "Melf\'s Minute Meteors", "Nondetection", "Phantom Steed", "Protection from Energy", "Remove Curse", "Sending", "Sleet Storm", "Slow", "Spirit Shroud", "Stinking Cloud", "Summon Fey", "Summon Lesser Demons", "Summon Shadowspawn", "Summon Undead", "Thunder Step", "Tidal Wave", "Tiny Servant", "Tongues", "Vampiric Touch", "Wall of Sand", "Wall of Water", "Water Breathing"]
+fourth = ["Arcane Eye", "Banishment", "Black Tentacles", "Bligth", "Charm Monster", "Confusion", "Conjure Minor Elementals", "Control Water", "Dimension Door", "Elemental Bane", "Fabricate", "Faithful Hound", "Fire Shield", "Galder\'s Speedy Courier", "Greater Invisibility", "Hallucinatory Terrain", "Ice Storm", "Secret Chest", "Locate Creature", "Private Sanctum", "Resilient Sphere", "Phantasmal Killer", "Polymorph", "Private Sanctum", "Psychic Lance", "Sickening Radiance", "Stone Shape", "Stoneskin", "Storm Sphere", "Summon Aberration", "Summon Construct", "Summon Elemental", "Summon Greater Demon", "Vitrolic Sphere", "Wall of Fire", "Watery Sphere"]
+fifth = ["Animate Objects", "Arcane Hand", "Bigby\'s Hand", "Cloudkill", "Cone of Cold", "Conjure Elemental", "Contact Other Plane", "Control Winds", "Creation", "Danse Macabre", "Dawn", "Dominate Person", "Dream", "Enervation", "Far Step", "Geas", "Hold Monster", "Immolation", "Infernal Calling", "Legend Lore", "Mislead", "Modify Memory", "Negative Energy Flood", "Passwall", "Planar Binding", "Rary\'s Telepathic Bond", "Scrying", "Seeming", "Skill Empowerment", "Steel Wind Strike", "Summon Draconic Spirit", "Synaptic Static", "Telekinesis", "Telepathic Bond", "Teleportation Circle", "Transmute Rock", "Wall of Force", "Wall of Light", "Wall of Stone"]
+
+firstspell = ""
+secondspell = ""
+thirdspell = ""
+
+#1 hour + 50gp per level
+
+if spellone == 2:
+	firstspell = randchoice(second)
+	firsttime = 2
+	firstcost = 100
+if spellone == 3:
+	firstspell = randchoice(third)
+	firsttime = 3
+	firstcost = 150
+if spellone == 4:
+	firstspell = randchoice(fourth)
+	firsttime = 4
+	firstcost = 200
+if spellone == 1:
+	firstspell = randchoice(first)
+	firsttime = 1
+	firstcost = 50
+
+if spelltwo == 1:
+	secondspell = randchoice(first)
+	secondtime = 1
+	secondcost = 50
+if spelltwo == 2:
+	secondspell = randchoice(second)
+	secondtime = 2
+	secondcost = 100
+if spelltwo == 3:
+	secondspell = randchoice(third)
+	secondtime = 3
+	secondcost = 150
+if spelltwo == 4:
+	secondspell = randchoice(fourth)
+	secondtime = 4
+	secondcost = 200
+
+if spellthree == 1:
+	thirdspell = randchoice(first)
+	thirdtime = 1
+	thirdcost = 50
+if spellthree == 2:
+	thirdspell = randchoice(second)
+	thirdtime = 2
+	thirdcost = 100
+if spellthree == 3:
+	thirdspell = randchoice(third)
+	thirdtime = 3
+	thirdcost = 150
+if spellthree == 4:
+	thirdspell = randchoice(fourth)
+	thirdtime = 4
+	thirdcost = 200
+if spellthree == 5:
+	thirdspell = randchoice(fifth)
+	thirdtime = 5
+	thirdcost = 250
+	
+c = character()
+cc = "Downtime"
+rt = c.get_cc(cc)
+coins = c.coinpurse
+gp = c.coinpurse.gp
+
+Dict = {"First Entry": {"name": firstspell, "time cost": firsttime, "gold cost": firstcost}, "Second Entry": {"name": secondspell, "time cost": secondtime, "gold cost": secondcost}, "Third Entry": {"name": thirdspell, "time cost": thirdtime, "gold cost": thirdcost}}
+
+c.set_cvar("LibrarySpells", dump_json(Dict))
+
+display = f' -title "{name} looks for a spell!" -desc "Once a week, Jun allows Garden members access to the rare book room and lets them copy any spells they happen to discover. You can only run this command once a week. Below are the spells you discovered this week. If you would like to copy any of them to your spell book, use !research copy \'Spell Name\' and it will automatically remove the time from your downtime and gold from your coinpurse. If you are a wizard and your school lets you copy for less time and cheaper, use the following format instead !research copy \'Spell Name\' school" -f "{firstspell} - Level {firsttime}|**Time Cost:** {firsttime} hours | **Gold Cost:** {firstcost}" -f "{secondspell} - Level {secondtime}|**Time Cost:** {secondtime} hours | **Gold Cost:** {secondcost}" -f "{thirdspell} - Level {thirdtime}|**Time Cost:** {thirdtime} hours | **Gold Cost:** {thirdcost}" -footer "{name}: <{c.hp_str()}> | Downtime Left: <{rt}> | Alias by Ru#9223" -thumb {image} -color {color} '
+
+return display
+</drac2>
