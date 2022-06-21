@@ -1,0 +1,1888 @@
+embed <drac2>
+if get("Adventure") == "On":
+	return f' -desc "You cannot !work while on adventure." '
+
+#This does include KibblesTasty loot. I incorporated their reagents and essences into !work. The idea behind work is that you can work a low paying job that pays poorly but gives loot, a well paying job that gives no loot, or a well paying job that gives loot and also complications. Make sure you fully read all the descriptions. Make sure you remove anything you don't like. Make sure you delete this comment, because this alias is already too big lol
+
+c = character()
+cs = c.skills
+acro,ani,arc,ath,dec,his,ins,inti,invest,medi,natu,perc,perf,pers,rel,soh,stealth,surv,stren,dex,con,wis,intel,cha = cs.acrobatics,cs.animalHandling,cs.arcana,cs.athletics,cs.deception,cs.history,cs.insight,cs.intimidation,cs.investigation,cs.medicine,cs.nature,cs.perception,cs.performance,cs.persuasion,cs.religion,cs.sleightOfHand,cs.stealth,cs.survival,cs.strength,cs.dexterity,cs.constitution,cs.wisdom,cs.intelligence,cs.charisma
+coins = c.coinpurse
+args = &ARGS&
+parse = argparse(args)
+dt = "Downtime"
+st = c.get_cc(dt)>=8
+curHour = c.cc_str(dt)
+display = f' -title "{name} would like to go to work!" -desc "Go to work to earn gold and possibly find loot! Use !work workname, make sure you spell the name of the work using all lowercase and spell it completely! Be careful, some work can result in complications...\n\n**Work with loot, low profit, and no complications**\n**Shrine.** Religion or insight, whichever is higher. Loot = divine essence.\n**Pickpocket.** Sleight of Hand. Loot = random craft material.\n**Music.** Performance. Loot = random craft material.\n**Scholar.** Religion, history, nature, arcana, whichever is higher. Loot = arcane essence.\n**Day.** Athletics. Loot = primal essence.\n\n**Work with no loot, high profit, and no complications**\n**Apothecary.** Herbalism kit using intelligence or wisdom, whichever is higher.\n**Counterfeiter.** Forgery kit using intelligence or charisma, whichever is higher.\n**Mapmaker.** Cartographer\'s tools using intelligence or dexterity, whichever is higher.\n**Tour.** Navigator\'s tools using wisdom or intelligence, whichever is higher.\n**Cook.** Cook\'s utensils using wisdom or intelligence, whichever is higher.\n**Smith.** Smith\'s tools using strength.\n**Cooper.** Carpenter\'s tools using strength.\n**Mercer.** First check uses insight, second check uses persuasion/deception.\n**Skald.** First check uses history, second check uses performance.\n**Guard.** First check uses perception, second check uses athletics.\n**Pet.** First check uses nature, second check uses animal handling.\n**Investigator.** First check uses investigation, second check uses insight.\n**Gladiator.** First check uses athletics, second check uses performance.\n**Hunter.** First check uses survival, second check uses stealth.\n**Sideshow.** First check uses acrobatics, second check uses performance.\n\n**Work with loot, high profit, and complications**\n**Burglar.** Uses thieves\' tools using dexterity. Loot = random craft material.\n**Spy.** Uses disguise kit using charisma. Loot = divine essence.\n**Caravanner.** Uses land vehicles using strength. Loot = random craft material.\n**Sailor.** Uses water vehicles using strength or dexterity, whichever is higher. Loot = primal essence.\n**Magitek.** Uses arcana, history, religion, or nature, whichever is higher. Loot = arcane essence." '
+if get("Lifestyle"):
+	ls = get("Lifestyle")
+	if "Poor" in ls:
+		lmod = -3
+	if "Modest" in ls:
+		lmod = 0
+	if "Wealthy" in ls:
+		lmod = 3
+if get("pTools"):
+	tools = get("pTools")
+else:
+	tools = ""
+if get("eTools"):
+	etools = get("eTools")
+else:
+	etools = ""
+#variables seen throughout
+bonusLS = lmod + proficiencyBonus
+moneyMod = 1
+base = randchoice([14,14,14,15,15,15,15,15,16,16,16])
+rangeBad = range(-30,9)
+rangeMed = range(9,16)
+rangeGood = range(16,100)
+complication = False
+failed1 = 0
+failed2 = 0
+loot = False
+lootamt = roll('1d4')
+lootamt2 = roll('1d4')
+chance = roll('1d100')
+
+
+#bonuses
+misc_bonus = ""
+bonus = parse.get('b')
+if '-b' in args:
+	misc_bonus += f'+{bonus[0]}'
+advbase = parse.adv(boolwise=True)
+
+#random NPC and Work Generators
+L = load_json(get_gvar("1e1975c0-95fa-4592-857c-bf5fe4699bd2"))
+name1 = randchoice(L)
+name2 = randchoice(L)
+agenum = vroll('4d6').total
+age = agenum + 10
+races = ["human", "dwarf", "dragonborn", "goblin", "elf", "half-elf", "gnome", "halfling", "half-orc", "tiefling", "canid", "catfolk", "aven", "genasi", "centaur", "minotaur", "triton", "aasimar", "bugbear", "orc", "kobold", "tortle", "animalfolk"]
+race = randchoice(races)
+lordnick = randchoice(['the Affable', 'the Aggressor', 'the Alchemist', 'the Artist-Prince', 'the Asleep', 'the Astrologer', 'the Avenger', 'the Bad', 'the Bald', 'the Bastard', 'the Battler', 'the Bear', 'the Bearded', 'the Beer Jug', 'the Beloved', 'the Librarian', 'the Blessed', 'the Blind', 'the Builder', 'the Bloody', 'the Bold', 'the Brave', 'the Brilliant', 'the Young', 'the Clement', 'the Confessor', 'the Conqueror', 'the Courteous', 'the Crusader', 'the Damned', 'the Deacon', 'the Determined','the Earth-Shaker', 'the Educator', 'the Elder', 'the Eloquent', 'the enlightened', 'the Exile', 'the Fair', 'the Swift', 'the Fearless', 'the Barbarian King', 'the Gentle', 'the Glorious', 'the Goddess-Given', 'the Hammer', 'the Blade', 'the Knife', 'the Shield', 'the Hero', 'the Holy', 'the Hardy', 'the Hidden', 'the Hunter', 'the Invincible', 'the Iron', 'the Just', 'the Fool', 'the Kind', 'the Last', 'the Learned', 'the Lawgiver', 'the Lion', 'the Mad', 'the Magnificient', 'the Martyr', 'the Timely', 'the Oath-Taker', 'the One-Eyed', 'the Pale', 'the Peaceful', 'the Pious', 'the Popular', 'the Poet', 'the Proud', 'the Red', 'the Restorer', 'the Righteous', 'the Stag', 'the Wolf', 'the Dragon', 'the Kraken', 'the Dog', 'the Savior', 'the Soldier', 'the Singler', 'the Simple', 'the Silent', 'the Sorrowful', 'the Tall', 'the Storm', 'the Unlucky', 'the Valiant', 'the Vengeful', 'the Victorious', 'the Wicked', 'the Rose', 'the Scorpion', 'the Thief'])
+cusType = randchoice(['bad','bad','bad','bad','bad','good', 'good'])
+if cusType == 'good':
+	goodmood = randchoice(['accepting', 'affectionate', 'caring', 'compassionate', 'empathetic', 'warm', 'engaged', 'blissful', 'eager', 'energized', 'enthusiastic', 'calm', 'trusting', 'serene', 'determined', 'capable','relaxed', 'peaceful', 'adventurous', 'centered', 'content', 'proud', 'happy'])
+	mood = goodmood
+if cusType == 'bad':
+	badmood = randchoice (['agitated','bitter','contemptuous','cynical','disdainful','disgruntled','edgy','frustrated','furious','grouchy','hostile','impatient','irate','moody','pissed off','resentful','anxious','apprehensive','hesitant','nervous','self-conscious','aloof','isolated','haunted','perplexed','withdrawn'])
+	mood = badmood
+randomchance = roll('1d100')
+lootchance = roll('1d100')
+if lootchance in range(1,16):
+	loottype = "wood scraps and 1 length of string"
+	stealamt = roll('1d6')
+	altloottype = "fancy parts"
+	altamt = roll('1d4')
+if lootchance in range(16,31):
+	loottype = "metal scraps"
+	stealamt = roll('1d4')
+	altloottype = "assorted parts, leather scraps, and metal scraps, your choice of which has what quantity"
+	altamt = roll('2d20')
+if lootchance in range(31,41):
+	loottype = "leather scraps and 1 hide scrap"
+	stealamt = roll('1d4')
+	altloottype = "uncommon poisonous reagent"
+	altamt = 1
+if lootchance in range(41,61):
+	loottype = "supplies"
+	stealamt = 1
+	altloottype = "uncommon curative reagent"
+	altamt = 1
+if lootchance in range(61,71):
+	loottype = "uncommon supplies"
+	stealamt = 1
+	altloottype = "uncommon reactive reagent"
+	altamt = 1
+if lootchance in range(71,81):
+	loottype = "common general poisonous reagent"
+	stealamt = roll('1d3')
+	altloottype = "uncommon magical ink, uncommon parchment, your choice of which has what quantity"
+	altamt = roll('2d2')
+if lootchance in range(81,91):
+	loottype = "common general curative reagent"
+	stealamt = roll('1d3')
+	altloottype = "esoteric parts"
+	altamt = 1
+if lootchance in range(91,97):
+	loottype = "common general reactive reagent"
+	stealamt = roll('1d3')
+	altloottype = "uncommon divine essence"
+	altamt = 1
+if lootchance in range(97,99):
+	loottype = "common magical ink"
+	stealamt = 1
+	altloottype = "uncommon primal essence"
+	altamt = 1
+if lootchance in range(99,100):
+	loottype = "parts"
+	stealamt = roll('1d4')
+	altloottype = "uncommon arcane essence"
+	altamt = 1
+stealRange = range(1,31)
+stealRangeCrit = range(1,51)
+
+Crime = randchoice(load_json(get_gvar("a6a275ae-6c3f-4e80-a346-a620cbbc0068")))
+Work = randchoice(load_json(get_gvar("c75f45a3-e482-426e-b73e-6d876efa37f6")))
+Sea = randchoice(load_json(get_gvar("1f72569d-e547-49b4-8cc2-3d79c7c6537d")))
+Magic = randchoice(load_json(get_gvar("a958ce10-c563-4fd1-aca0-60aeade551e3")))
+
+#jobs
+if st:
+	if args:
+		if "shrine" in args:
+			ab = max([rel,ins])
+			if ab.prof:
+				if ab == rel:
+					fbonus = int(intel) + proficiencyBonus
+				if ab == ins:
+					fbonus = int(wis) + proficiencyBonus
+			else:
+				if ab == rel:
+					fbonus = int(intel)
+				if ab == ins:
+					fbonus = int(wis)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = ab.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			feeling = ["uneasy", "lonely", "debilitated", "lousy", "hopeless", "lost", "fearful", "scared", "worried"]
+			feel = randchoice(feeling)
+			display += f'embed -title "{name} goes to work at the shrine!" -desc "You come in to help out at the shrine of your god. People of all kinds come seeking guidance. Today a(n) {race} named {name1} has come in. They have been feeling {feel} lately. Can you provide guidance?" '
+			critF = '1d8'
+			pRange = '1d10'
+			mRange = '2d6'
+			gRange = '2d8'
+			critS = '3d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "The story you want to tell is on the tip of your tongue and it takes you longer than normal to work up to telling it."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You aren\'t able to recall any relevant scripture or come up with any useful allegory."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You recall a story that fits with their dilemma."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You relate their dilemma to a popular story in scripture."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You recall the perfect story that matches their exact situation."
+			apc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			second = ab.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			lootamt = roll('1d4')
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You weren\'t able to make a connection and the person left unsatisfied."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You botched driving the story home and didn\'t help at all."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You were able to connect with the person and guide them down the right path."
+				if randomchance in range(1, 16):
+					if randomchance in range(1, 10):
+						loottype = "common divine essence"
+						loot = True
+					if randomchance in range(10, 15):
+						loottype = "uncommon divine essence"
+						loot = True
+					if randomchance is 15:
+						loottype = "rare divine essence"
+						lootamt = 1
+						loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You renewed faith in this person."			
+				if randomchance in range(1, 31):
+					if randomchance in range(1, 21):
+						loottype = "common divine essence"
+						loot = True
+					if randomchance in range(21, 31):
+						loottype = "uncommon divine essence"
+						loot = True
+					if randomchance is 30:
+						loottype = "rare divine essence"
+						lootamt = 1
+						loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "You instilled a new love for your god in this person and they are determined to follow the teachings more closely."
+				if randomchance in range(1, 51):
+					if randomchance in range(1, 31):
+						loottype = "common divine essence"
+						loot = True
+					if randomchance in range(31, 41):
+						loottype = "uncommon divine essence"
+						loot = True
+					if randomchance in range(41,51):
+						loottype = "rare divine essence"
+						lootamt = 1
+						loot = True
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**You know, that reminds me of a story...**|**Check:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Connection**|**Check:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your insight or religion check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your insight or religion check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044877486379028/961765838338273290/prayer.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#street musician	
+		if "music" in args:
+			if perf.prof:
+				fbonus = int(cha) + proficiencyBonus
+			else:
+				fbonus = int(cha)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = perf.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			display += f'embed -title "{name} goes out to be a street musician!" -desc "You decide to play music on the street today. The pay isn\'t always the best, but sometimes people give you interesting items." '
+			critF = '1d8'
+			pRange = '1d10'
+			mRange = '2d6'
+			gRange = '2d8'
+			critS = '3d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You can\'t quite find a street populated enough and after wasting time walking, you decide to try playing here."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "No one seems to be paying any attention to you..."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You find a decent place to play."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You find a crowded street to play."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "The street is crowded, everyone seems to be in a good mood, and it seems like people are interested in your performance."
+			apc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			second = perf.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "Your music doesn\'t seem to connect with anyone."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "No one is paying attention to you."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "People stop to watch you play."
+				if randomchance in stealRange:
+					loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You have gathered a crowd that seems happy to watch your performance."
+				if randomchance in stealRange:
+					loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "Your performance is legendary and the crowd is huge around you."
+				if randomchance in stealRangeCrit:
+					loot = True
+					loottype = altloottype
+					stealamt = altamt
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Setting Up**|**Performance:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Performing**|**Performance:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your first check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/961056683789004861/963842379096391730/musical-score.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {stealamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#scholar
+		if "scholar" in args:
+			ab = max([rel,his,natu,arc])
+			if ab.prof:
+				fbonus = int(intel) + proficiencyBonus
+			else:
+				fbonus = int(intel)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = ab.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			studies = ["Chaos Studies", "Dustspeaking", "Warlore", "Bladesinging", "Aeonmancy", "Archaeomancy", "Iconology", "Symbology", "Electromancy", "Pyromancy", "Hydromancy", "Prophecies", "Amplimancy", "Mana Studies", "Physics", "Vivification", "Environmental Sciences", "Abstraction", "Fractalology", "Spiralmancy", "Void Theory", "Elocution", "Inkwork Spells", "Lumimancy", "Scornmagic", "Curses and Hexes", "Silverspeech", "Inkcasting", "Alchemy", "Arcanochemistry", "Herbalism", "Poisoncraft", "Enchanting", "Bloodmagic", "Necromancy", "Oculomancy", "Ofusmancy", "Magical Auras", "Goddess Trinity", "Fenrawr", "Relicology", "Symbology of the Divine", "Hidden Archfey", "Elemental Binding", "Glyphweaving", "Arcano-Botany", "Eldritch Ecology", "the Ancients", "Computational Magic", "Performance"]
+			study = randchoice(studies)
+			studyType = randchoice(["the magic of", "the secrets of", "the truth of", "a deep dive into", "an analysis of", "an introduction to", "a reimagining", "the case for", "the case against", "an intermediate look into", "a history of", "a basic breakdown of"])
+			display += f'embed -title "{name} researches for Vornore University!" -desc "You decide to conduct some research and write information on {studyType} {study} for Vornore University." '
+			critF = '1d8'
+			pRange = '1d10'
+			mRange = '2d6'
+			gRange = '2d8'
+			critS = '3d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You go down a rabbithole and barely finish your writing."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You got writer's block immediately and kept rewriting the first sentence until you were halfway through the work day."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You manage to write and finish in the allotted time."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You finish early enough that you can go back and correct any grammatical errors you spot on this first run through."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "The words just flow onto the page and you manage to finish early enough that you catch all your grammatical errors and clean up your sentences."
+			apc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			second = ab.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			lootamt = roll('1d4')
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You didn\'t quite manage to capture the true essence of your topic."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You ended up writing something completely different to the topic you promised the university."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "The information you uncovered or made digestable for new students was adequate."
+				if randomchance in range(1, 16):
+					if randomchance in range(1, 10):
+						loottype = "common arcane essence"
+						loot = True
+					if randomchance in range(10, 15):
+						loottype = "uncommon arcane essence"
+						loot = True
+					if randomchance is 15:
+						loottype = "rare arcane essence"
+						lootamt = 1
+						loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You covered new ground or made the text very readable for students."
+				if randomchance in range(1, 31):
+					if randomchance in range(1, 21):
+						loottype = "common arcane essence"
+						loot = True
+					if randomchance in range(21, 30):
+						loottype = "uncommon arcane essence"
+						loot = True
+					if randomchance is 30:
+						loottype = "rare arcane essence"
+						lootamt = 1
+						loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "Your work is not only helpful to students, but the professors as well. It is lauded as being a crucial piece of the framework for your topic."
+				if randomchance in range(1, 51):
+					if randomchance in range(1, 31):
+						loottype = "common arcane essence"
+						loot = True
+					if randomchance in range(31, 41):
+						loottype = "uncommon arcane essence"
+						loot = True
+					if randomchance in range(41,51):
+						loottype = "rare arcane essence"
+						lootamt = 1
+						loot = True
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Writing Style**|**Knowledge Check:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Content**|**Knowledge Check:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check. This work takes the highest of Arcana, History, Nature, or Religion and uses that to roll.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044794971815957/961766378564640808/classical-knowledge.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#pickpocket
+		if "pickpocket" in args:
+			if soh.prof:
+				fbonus = int(intel) + proficiencyBonus
+			else:
+				fbonus = int(intel)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = soh.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			display += f'embed -title "{name} takes to the streets as a pickpocket!" -desc "You walk along the streets of Bellos, looking for an easy target." '
+			critF = '1d8'
+			pRange = '1d10'
+			mRange = '2d6'
+			gRange = '2d8'
+			critS = '3d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You struggle to find a good place to pickpocket and decide to make due."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "Where is everyone? The streets seem empty. You won\'t be able to get away with much."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "Good. There is a decent amount of people here and some of them have fat pockets."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "There\'s a ton of people here and you believe it will be a cinch to blend into the crowd."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "It doesn\'t get better than this! Crowds, merchants, nobles, all your\'s for the picking."
+			apc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			second = soh.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "Ugh. The guy you just robbed didn\'t have much on him..."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "They looked like they had big pockets..."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "Nice pull!"
+				if randomchance in stealRange:
+					loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "Excellent, you definitely got something decent."
+				if randomchance in stealRange:
+					loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "Fantastic! You seemed to have grabbed a lot out of their pockets."
+				if randomchance in stealRangeCrit:
+					loot = True
+					loottype = altloottype
+					stealamt = altamt
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Finding a spot**|**Sleight of Hand:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Picking the pockets**|**Sleight of Hand Check:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou stole {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/960044760301715496/961766762771275866/robber-hand.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {stealamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#day laborer
+		if "day" in args:
+			if ath.prof:
+				fbonus = int(stren) + proficiencyBonus
+			else:
+				fbonus = int(stren)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = ath.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			display += f'embed -title "{name} goes to work as a Day Laborer!" -desc "You decide to use your muscles to make money. There is plenty of work in construction, landscaping, housekeeping, and others in Bellos." '
+			critF = '1d8'
+			pRange = '1d10'
+			mRange = '2d6'
+			gRange = '2d8'
+			critS = '3d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You come into work already tired."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You come into work exhausted."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You are in good physical condition today."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You come in well rested and ready for the day."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You are in top physical condition today."
+			apc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			second = ath.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			lootamt = roll('1d4')
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "For whatever reason, the work doesn\'t get done as quickly as the boss would like."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You barely complete the job."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You get the job done."
+				if randomchance in range(1, 16):
+					if randomchance in range(1, 10):
+						loottype = "common primal essence"
+						loot = True
+					if randomchance in range(10, 15):
+						loottype = "uncommon primal essence"
+						loot = True
+					if randomchance is 15:
+						loottype = "rare primal essence"
+						lootamt = 1
+						loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You exceed expectations."
+				if randomchance in range(1, 31):
+					if randomchance in range(1, 21):
+						loottype = "common primal essence"
+						loot = True
+					if randomchance in range(21, 30):
+						loottype = "uncommon primal essence"
+						loot = True
+					if randomchance is 30:
+						loottype = "rare primal essence"
+						lootamt = 1
+						loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "You complete the job and manage to help others with their tasks!"	
+				if randomchance in range(1, 51):
+					if randomchance in range(1, 31):
+						loottype = "common general primal essence"
+						loot = True
+					if randomchance in range(31, 41):
+						loottype = "uncommon general primal essence"
+						loot = True
+					if randomchance in range(41,51):
+						loottype = "rare general primal essence"
+						lootamt = 1
+						loot = True
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Condition**|**Athletics:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Working**|**Athletics:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou earned {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/960044738428436522/961766953419149402/muscle-up.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#apothecary
+		if "apothecary" in args:
+			if "Herbalism Kit" in tools or etools:
+				ab = max(intel,wis)
+				if "Herbalism Kit" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				feeling = ["sick", "nauseated", "queasy", "feverish", "afflicted", "debilitated", "lousy", "run-down", "bad", "achy", "out of sorts", "cruddy"]
+				feeling = ["sick", "nauseated", "queasy", "feverish", "afflicted", "debilitated", "lousy", "run-down", "bad", "achy", "out of sorts", "cruddy"]
+				symptoms = ["abdominal pain", "a strange lump", "anxiety", "blurred vision", "aches", "fatigue", "chest pain", "toothache", "bleeding", "bloating", "chills", "cramps", "weight loss", "headache", "nosebleed", "numbness", "tingling", "bad breath", "no sense of taste or smell", "blackouts", "apathy", "depression", "broken bones", "drowsiness", "forgetfulness", "mood swings", "fits of rage", "moodiness", "confusion", "anemia", "excessive itching", "hallucinations", "lightheadedness", "twitching", "nasal congestion", "personality changes", "poor concentration", "runny nose", "swelling", "dizziness", "excessive bouts of crying", "excessive sweating", "insomnia", "difficulty waking up", "ear ache", "hearing loss"]
+				feel = randchoice(feeling)
+				sym1 = randchoice(symptoms)
+				sym2 = randchoice(symptoms)
+				sym3 = randchoice(symptoms)
+				display += f'embed -title "{name} goes to work as an Apothecary!" -desc "You set out to make a few housecalls.\n\n Your patient is a {race} named {name1}, who is about {age} years old. They have come into your care, complaining that they feel {feel}. They are suffering from {sym1}, {sym2}, and {sym3}." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "It takes you more prodding than normal to understand why your patient feels the way they do."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "You are inattentive, unable to really pay attention to your patient or understand their needs. It takes a few tries to get things right."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You listen to your patient and manage to rule out several possible ailments."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "You manage to discern what is going on with your patient and they are thankful for you."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "Your bedside manner is unparalled and you have discerned what the cause of their ailment must be!"
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Diagnosis**|**Herbalism Kit:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your diagnosis, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your diagnosis. This work chooses your wisdom or intelligence, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/958785997313810462/961735393986900018/apothecary.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Herbalism Kit!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro herb if you are proficient in Herbalism Kit." '	
+	#counterfeiter
+		if "counterfeiter" in args:
+			if "Forgery Kit" in tools or etools:
+				ab = max(intel,cha)
+				if "Forgery Kit" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				feits = ["money","a diploma","indentification","a contract","a signature","a letter","a journal entry"]
+				feit = randchoice(feits)
+				display += f'embed -title "{name} makes documents on the sly!" -desc "A client of your\'s, a {race} named {name1}, needs {feit} made for them. Can you help them out?" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "This is not your best work."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "You are lucky to get paid at all. It could have looked better written in crayon."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "Nothing great, but it passes for what the client wants."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "Looks like the real thing, if you don\'t say so yourself."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "There\'s no way anyone will spot this fake."
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Forging the Document**|**Forgery Kit:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your forgery, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your forgery This work chooses your charisma or intelligence, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044553224736770/961767559613526046/two-coins.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Forgery Kit!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro forge if you are proficient in Forgery Kit." '
+	#Mapmaker
+		if "mapmaker" in args:
+			if "Cartographer\'s Tools" in tools or etools:
+				ab = max(intel,dex)
+				if "Cartographer\'s Tools" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				biomes = ["arctic", "grassland", "forest", "desert", "tundra", "coastal", "hill", "mountain", "swamp"]
+				biome = randchoice(biomes)
+				display += f'embed -title "{name} sits down to finish and sell some maps!" -desc "A client, a {race} named {name1}, has come to you asking if you could cover a particular area, which has a {biome} biome." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "You have poor knowledge of the area and miss major details."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "Your lack of research has led to this area being poorly mapped."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You miss some of the finer details, but the map works for what the client needs."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "This map is great and really outlines what the area is like."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "You have captured the essence of the area, and it will be a great help to your client."
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Mapping the Area**|**Cartographer\'s Tools:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your map, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your map. This work chooses your dexterity or intelligence, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044182205005884/961768357504385024/compass.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Cartographer\'s Tools" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro cart if you are proficient in Cartographer\'s Tools." '
+	#Tour Guide
+		if "tour" in args:
+			if "Navigator\'s Tools" in tools or etools:
+				ab = max(wis,intel)
+				if "Navigator\'s Tools" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} works as a Tour Guide!" -desc "A group of people led by {name1}, a(s) {race}, requested a tour of Bellos. Time to get to work!" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "You end up forgetting to show them some of the sights they were hoping to see."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "Your heart just wasn\'t in it today and you fail to give a great tour."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You give a decent tour."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "The group is amazed by the tour you gave. It seems they might tip."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "You show them all the best places to eat and what to avoid. The group had a great time."
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**The Tour**|**Navigator\'s Tools:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your tour, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your tour. This work chooses your wisdom or intelligence, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960043909206143006/961768449971994624/quill.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Navigator\'s Tools!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro navi if you are proficient in Navigator\'s Tools." '
+	#Cook
+		if "cook" in args:
+			if "Cook\'s Utensils" in tools or etools:
+				ab = max(wis,intel)
+				if "Cook\'s Utensils" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} goes to work as a cook!" -desc "You sometimes moonlight at a quick service, dine in, or some other type of restaurant. How well will you cook this time?" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "Your cooking... well, it was edible?"
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "This was the most disgusting meal you\'ve ever made."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "Not great, but not bad either."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "Delicious! People have been asking for seconds, thirds, and even fourths."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "Your culinary skill has brought tears to the eyes of your patrons. They will sing forever more of the taste."
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Cooking**|**Cook\'s Utensils:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your tour, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your cookin. This work chooses your wisdom or intelligence, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/961056683789004861/964005514008723476/cook_1.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Cook\'s Utensils!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro navi if you are proficient in Navigator\'s Tools." '
+	#Smith
+		if "smith" in args:
+			if "Smith\'s Tools" in tools or etools:
+				ab = stren
+				if "Smith\'s Tools" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				equipments = ["dagger","handaxe","javelin","light hammer","mace","sickle","spear","battleaxe","flail","glaive","greataxe","greatsword","halberd","longsword","maul","morning star","pike","rapier","scimitar","shortsword","war pick","war hammer","chain shirt","scale mail","breastplate","half plate","ring mail","chain mail","splint","plate","shield","tower shield","spiked shield","bracers"]
+				equipment = randchoice(equipments)
+				display += f'embed -title "{name} works as a smith!" -desc "You are working in the forge today, a customer named {name1} is hoping you can craft them a(n) {equipment}. Can you do it?" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "It doesn't seem like it will last long..."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "This is some of your worst work yet."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "It will do."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "The customer is incredibly pleased with this equipment. They pay you well for it."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "This is a mastercraft!"
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Smithing**|**Smith\'s Tools:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your tour, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your cookin. This work chooses your strength, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/872987948642095137/964015301584887849/anvil-impact.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Smith\'s Tools!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro smith if you are proficient in Smith\'s Tools." '
+	#Cooper
+		if "cooper" in args:
+			if "Carpenter\'s Tools" in tools or etools:
+				ab = stren
+				if "Carpenter\'s Tools" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} works as a cooper!" -desc "You come into the shop to start working on making or repairing casks and barrels." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "Your work is somewhat shoddy."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "Actually, you kind of broke it further."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You get the job done."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "You complete several projects today. Excellent!"
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "You made an overly elegant barrel, what a show off!"
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Working**|**Carpenter\'s Tools:** {fc} + {lmod} (lifestyle) + {proficiencyBonus} (proficiency bonus) = {fcheck}\n{result}" -f "**Payment**|Based on your tour, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which was determined by your cookin. This work chooses your strength, add proficiency bonuses, and your lifestyle mod.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/872987948642095137/964014736888983582/cellar-barrels.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '		
+			else:
+				display += f' -title "Missing tool or tool proficiency: Carpenter\'s Tools!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro carp if you are proficient in Carpenter\'s Tools." '
+	#mercer
+		if "mercer" in args:
+				if ins.prof:
+					fbonus = proficiencyBonus + int(wis)
+				else:
+					fbonus = int(wis)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ins.d20(min_val = fmc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				if dec.prof or pers.prof:
+					sbonus = proficiencyBonus + int(cha)
+				else:
+					sbonus = int(cha)
+				spc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+				second = pers.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				sc = vroll(second)
+				scheck = sc.total + lmod
+				display += f'embed -title "{name} goes to work as a merchant!" -desc "You operate your market stall, shop, or work for someone else.\n\n Your customer is a {race} named {name1}, who is about {age} years old. They look like they are in a {cusType} mood. After speaking with them for a bit, you determine they are a(n) {mood} person." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					result = "You could only highlight a couple reasons to have the item."
+				if fc.result.crit == 2:
+					moneyMod = .75
+					result = "You struggled to explain why they should buy the item."
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					result = "You explained good reasons to purchase the item."
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					result = "The customer seems interested in buying the item."
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					result = "They are invested in the purchase."
+				if scheck in rangeBad:
+					monies = vroll(pRange)
+					result2 = "You couldn\'t convince them to go for the extra deluxe, but settled on selling them a cheaper item."
+				if sc.result.crit == 2:
+					monies = vroll(critF)
+					result2 = "You completely botched the telling of their tale!"
+				if scheck in rangeMed:
+					monies = vroll(mRange)
+					result2 = "You made the sale! Hopefully the commission is good..."
+				if scheck in rangeGood:
+					monies = vroll(gRange)
+					result2 = "You made the sale and got a bit extra on commission."
+				if sc.result.crit == 2:
+					monies = vroll(critS)
+					result2 = "The deal\'s the deal."
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Approach**|**Insight**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**The Sale**|**Deception or Persuasion:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your sale, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod} which was based on your insight check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960045018926710836/961737263975399485/cash.png '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#skald
+		if "skald" in args:
+			if his.prof:
+				fbonus = int(intel) + proficiencyBonus
+			else:
+				fbonus = int(intel)
+			smc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = his.d20(min_val = smc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			if perf.prof:
+				sbonus = int(cha) + proficiencyBonus
+			else:
+				sbonus = int(cha)
+			spc = (10 if c.csettings.get("Talent", False) and cs.performance.prof else None)
+			second = perf.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			display += f'embed -title "{name} goes to a noble\'s home as a skald!" -desc "You have been invited to a lord\'s manor as entertainment.\n\n Lord {name1}, who is about {age} years old. They look like they are in a {cusType} mood. After speaking with them for a bit, you determine they are a(n) {mood} person. You decide to recite a tale about {name2} {lordnick}." '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "Details of their life are hazy in your memory..."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You forget all tales about them and struggle to make up details."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You recalled one of their many tales of heroism."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You figured out which of their tales would go over best."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You recalled the perfect story to tell."
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You inflect your voice at the wrong times and tell jokes or sorrowful stories that receive no reaction."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You completely botched the telling of their tale!"
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "The audience enjoyed your rendition of their heroic deeds!"
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You received a standing ovation!"
+			if sc.result.crit == 2:
+				monies = vroll(critS)
+				result2 = "Your tenor and inflection was unmatched! The audience loved your tales!"
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Recalling...**|**History**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Performance**|{sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your performance check, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod} which was determined by your history check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960045003843981352/961764798549360660/ancient-sword.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#guard	
+		if "guard" in args:
+			if perc.prof:
+				fbonus = int(wis) + proficiencyBonus
+			else:
+				fbonus = int(wis)
+			smc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = cs.perception.d20(min_val = smc,mod_override=fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			if ath.prof:
+				sbonus = int(stren) + proficiencyBonus
+			else:
+				sbonus = int(stren)
+			spc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = cs.athletics.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			display += f'embed -title "{name} goes sets out on patrol as a city guard!" -desc "It\'s a tough job, but someone has to do it. You walk about the city on the lookout... it seems there\'s trouble." '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You struggle to see which way the criminal has run, but you manage to catch up eventually."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "The criminal is like a shadow. You have difficulty seeing where they are heading!"
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You follow the criminal."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You keep a close tail on the perp!"
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You are hot on the criminal\'s heels!"
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You chased the criminal, but they got lost in the crowd."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You chase the criminal, but they manage to outspeed you... They got away!"
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You chase the criminal, and you keep a steady pace. You manage to tail them!"
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You catch up with the criminal with relative ease."
+			if sc.result.crit == 2:
+				monies = vroll(critS)
+				result2 = "You chase the criminal. They are no match for your strength and will! You catch them!"
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Looking for trouble...**|**Perception**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**The Chase!**|**Athletics:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your athletics check, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which is based on your perception check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044962358112286/961765399324655656/guarded-tower.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#pets	
+		if "pet" in args:
+			animal = randchoice(['frog', 'rabbit', 'dog', 'snake', 'cat', 'fish', 'mouse', 'ferret', 'rat', 'spider', 'iguana', 'beetle', 'chicken', 'gecko', 'goat', 'pig', 'hedgehog', 'hamster', 'squirrel', 'sugar glider', 'turtle'])
+			if natu.prof:
+				fbonus = int(intel) + proficiencyBonus
+			else:
+				fbonus = int(intel)
+			smc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = cs.nature.d20(min_val = smc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			if ani.prof:
+				sbonus = int(wis) + proficiencyBonus
+			else:
+				sbonus = int(wis)
+			spc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = cs.animalHandling.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			display += f'embed -title "{name} goes to work as a pet shop clerk!" -desc "A {race} named {name1} walks into the store. They are considering purchasing a(n) {animal}. They are in a {cusType} mood, and seem {mood}. Can you help them out?" '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You try to explain how to care for this animal, but you end up being corrected by the customer a few times."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You misremember carefacts about animal and make it more unappealing to purchase."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You explain how to best care for this creature and sell on animal\'s charms."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You make this animal seem like the greastest thing ever!"
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You sell the customer on all the positive points about having a(n) animal!"
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You make the sale."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "While demonstrating how to handle the animal, it attacks you due to a misstep. You manage to keep the sale, but end up lowering the price."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "The animal is wellbehaved, at least for you, and you manage to talk the customer up on price."
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "The animal does a couple of tricks for you, and it looks even more appealing."
+			if sc.result.crit == 2 and failed2 == 0:
+				monies = vroll(critS)
+				result2 = "You get the animal to perform cute tricks that astound the customer. They\'ll buy it at a high price."	
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Don\'t you want a {animal}?**|**Nature**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Making the sale!**|**Animal Handling:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your animal handling check, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which is based on your nature check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044914505302077/961765527615836230/rabbit.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#investigator
+		if "investigator" in args:
+			if invest.prof:
+				fbonus = proficiencyBonus + int(intel)
+			else:
+				fbonus = int(intel)
+			if ins.prof:
+				sbonus = proficiencyBonus + int(wis)
+			else:
+				sbonus = int(wis)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = invest.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			investtype = ["obtain the whereabouts of", "look into the dealings of", "uncover the true identity of", "conduct a background check on", "follow and report the dealings of", "uncover any crimes commited by", "find the item stolen by", "interrogate", "check the validity of the claims made by", "look into the disappearance of"]
+			gation = randchoice(investtype)
+			display += f'embed -title "{name} is needed for an investigation!" -desc "When you arrive at work today, you find a(n) {race} named {name1}. They would like you to {gation} {name2}. Will you be able to help them?" '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "Seeing the evidence, you find it difficult to piece them together. What could it mean?"
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "Your initial investigation bears no fruit at first. You meander in search of the first clue to help you."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "The pieces of the puzzle are coming together..."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You form strong connections between the pieces of evidence."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You perfectly mindmap what is going on based on the evidence."
+			apc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = ins.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You struggle to piece the evidence together, but you do manage to get a lead. Maybe next time you will finish this investigation."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "As you collect more evidence and present them to your client, it would appear as if you have forgotten to account for something. It seems the case will go unsolved."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You uncover new pieces of information and give your client a lead."
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You have pulled together new evidence and uncover a strong lead for your client."
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "You\'re technique is exquisite and you manage to pinpoint the exact information your client has been looking for!"
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coin_delta = coins.modify_coins(gp=gp_delta)
+			pay = ceil(total_coin_delta.total)
+			display += f' -f "**The initial investigation.**|**Investigation:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Finding the key evidence.**|**Insight:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your insight check, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which is based on your investigation check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044836776476752/961766170002878464/sherlock-holmes.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#Gladiator
+		if "gladiator" in args:
+			if ath.prof:
+				fbonus = proficiencyBonus + int(stren)
+			else:
+				fbonus = int(stren)
+			if perf.prof:
+				sbonus = proficiencyBonus + int(cha)
+			else:
+				sbonus = int(cha)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = ath.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			display += f'embed -title "{name} enters the coliseum!" -desc "You are facing {name1} {lordnick}. Will you overcome them?" '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You didn't stretch properly and it shows."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You are in poor form today."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "Your attacks are met in equal force."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You gain an advantage in the battle!"
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You are in perfect form today."
+			apc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = perf.d20(min_val = apc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "The drama of the combat is passable, but not riveting."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "You are unable to convey the drama of combat to the audience. They are not amused."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You convey the drama of combat to the audience. They seem invested in the story."
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "You play a great hero or heel. The audience adores or hates you, but either way it pays."
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result2 = "You are the perfect hero or heel. Hopefully your cut of the gold they are throwing is big."
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coin_delta = coins.modify_coins(gp=gp_delta)
+			pay = ceil(total_coin_delta.total)
+			display += f' -f "**The Battle**|**Athletics:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**The Drama**|**Performance:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your performance check, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod}, which is based on your athletics check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044717062619136/961767072705175602/gladius.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#Hunter
+		if "hunter" in args:
+			if surv.prof:
+				fbonus = proficiencyBonus + int(wis)
+			else:
+				fbonus = int(wis)
+			fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = surv.d20(min_val = fmc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			if stealth.prof:
+				sbonus = proficiencyBonus + int(dex)
+			else:
+				sbonus = int(dex)
+			spc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = stealth.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			display += f'embed -title "{name} goes on a hunt!" -desc "You go out into the wild to hunt game to return with to sell." '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "You struggle to track game and take longer than usual to find any."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You flounder for hours to anything worth hunting."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "You track an animal."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "You manage to find fresh tracks."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You expertly track some rare game."
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "Your approach is poor and you make enough noise that the game runs off. You eventually catch up to it, but you fail to capture as much game as you would have normally."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "As you approach for the kill, ranged or melee, you snap a twig, rustle a bush, or otherwise make enough sound that the creature gets away! You end up hunting smaller game."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You sneak up on your prey and manage to drop it quickly."
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "Silently, you move into position and manage to attack your prey from the shadows."
+			if sc.result.crit == 2:
+				monies = vroll(critS)
+				result2 = "You blend into the surroundings and attack your prey."
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Tracking**|**Survival**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**The Attack**|**Stealth:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your attack, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod} which was based on your survival check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/960044772867837984/961766483254444032/wolf-trap.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#Sideshow Performer
+		if "sideshow" in args:
+			if acro.prof:
+				fbonus = proficiencyBonus + int(dex)
+			else:
+				fbonus = int(dex)
+			fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = acro.d20(min_val = fmc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			if perf.prof:
+				sbonus = proficiencyBonus + int(cha)
+			else:
+				sbonus = int(cha)
+			spc = (10 if c.csettings.get("Talent", False) and sbonus else None)
+			second = perf.d20(min_val = spc) + ("+1d4[guidance]" if parse.get("guidance") else "")
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			display += f'embed -title "{name} puts on a show!" -desc "You use your natural agility and flexibility to complete death-defying feats and it doesn\'t hurt to wink at the audience, tell jokes, or otherwise entertain them as you go." '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				result = "Due to circumstances outside your control, your performance isn\'t as great as it could be."
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "You nearly slip due to poor setup. The audience noticed."
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "Your performance is good."
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "Your performance is great. The audience applauds wildly."
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "You manage to put in a few extra flips, spins, and tricks that wow the audience!"
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result2 = "You struggle to say or do anything that brings out laughter, tears, or joy from the audience."
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result2 = "Your mind goes blank and you just can\'t seem to come up with anything entertaining to say."
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result2 = "You get a few chuckles, smiles, or tears from the audience."
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result2 = "The audience is thrilled with your performance. They clap when you want them to, they cry when you want them to, and they laugh when you want them to. All in all, it is a great show!"
+			if sc.result.crit == 2:
+				monies = vroll(critS)
+				result2 = "Your performance is astounding and you have the audience wrapped around your finger."
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**The Stunts**|**Acrobatics:**: {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**The Performance**|**Performance:** {sc} + {lmod} (lifestyle) = {scheck}\n{result2}" -f "**Payment**|Based on your stunts, here is your roll {monies}. The result + {base}, then multiplied by {moneyMod} which was based on your performance check.\n\nYou were paid {pay} gp for your services." -thumb https://cdn.discordapp.com/attachments/961056683789004861/963801734126370856/acrobatic.png '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+	#Burglar
+		if "burglar" in args:	
+			if "Thieves\' Tools" in tools or etools:    
+				ab = dex
+				if "Thieves' Tools" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				fmc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = fmc, mod_override = fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "")
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} decides to do a little B&E as a burglar!" -desc "You received intel from your criminal friends about a potential hit. If you do things right, you might make it big." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "This is bad. You made too much noise and it seems people are present!"
+					if chance in range(1, 31):
+						complication = True
+						complicationType = Crime
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "Your intel was bad and lots of things are cropping up that will get you caught. Honestly, if you make it out of here, thank your lucky stars."
+					if chance in range(1, 61):
+						complication = True
+						complicationType = Crime
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "There is a hitch in your plans, you try to grab what you can, but you might land yourself in trouble if you aren\'t careful..."
+					if chance in range(1, 16):
+						complication = True
+						complicationType = Crime
+					if randomchance in stealRange:
+						loot = True
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "You planned this quite well. You should be able to get away with this."
+					if chance in range(1, 9):
+						complication = True
+						complicationType = Crime
+					if randomchance in stealRange:
+						loot = True
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "Only an act of god would cause you to get caught with this stuff!"
+					if chance in range(1, 5):
+						complication = True
+						complicationType = Crime
+					if randomchance in stealRangeCrit:
+						loot = True
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**Breaking and Entering**|**Thieves\'s Tools:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou stole {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/960044738428436522/961766953419149402/muscle-up.png '
+				if loot == True:
+					display += f' -f "**Lucky find!**|You managed to find {altamt} {altloottype}. Nice! You will need to manually add it to your !bag." '
+				if complication == True:
+					display += f' -f "**Complication!**|{Crime}" '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+			else:
+				display += f' -title "Missing tool or tool proficiency: Thieves\'s Tools!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro thiev if you are proficient in Thieves\'s Tools." '
+	#Spy
+		if "spy" in args:
+			if "Disguise Kit" in tools or etools:    
+				ab = cha
+				if "Disguise Kit" in etools:
+						fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+						fbonus = proficiencyBonus + int(ab)
+				amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = amc, mod_override=fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				plots = ["if a certain circle of nobles are actually lizard people","if a cult has started to form in a certain social circle","the truth about how certain taxes are spent","a mole that has gotten into their organization","if there is a ploy to overthrow the government","where a certain criminal has gone to hide","if a certain circle of  nobles are actually cultists","if illegal activity is being conducted by a certain group","if an enemy faction has been influencing the political landscape","if an enemy faction has started to move into the area","if an enemy faction is behind the most recent crime spree","if an enemy faction is planning an assassination","if there is a traitor in Garden","if the growing diplomatic relationship between two parties has dark undertones","if a certain group of people are behind the recent theft of a treasure"]
+				plot = randchoice(plots)
+				display += f'embed -title "{name} goes undercover as a spy!" -desc "Your client has hired you to uncover {plot}. Can you sneak into those societies or groups and discover the truth?" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "Your disguise was saw through! You had to get out before uncovering the whole truth."
+					if chance in range(1, 31):
+						complication = True
+						complicationType = Crime
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "On the verge of discovering the truth, you were discovered first! You escaped, but you would be lucky if this doesn\'t cause you problems..."
+					if chance in range(1, 61):
+						complication = True
+						complicationType = Crime
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You manage to worm your way into that group and uncover some details that your client wants, but you couldn\'t deliver the whole truth."
+					if chance in range(1, 16):
+						complication = True
+						complicationType = Crime
+					if randomchance in range(1, 31):
+						if randomchance in range(1, 21):
+							loottype = "common divine essence"
+							loot = True
+						if randomchance in range(21, 30):
+							loottype = "uncommon divine essence"
+							loot = True
+						if randomchance is 31:
+							loottype = "rare divine essence"
+							lootamt = 1
+							loot = True
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "You put on a performance so good your own parent or creator wouldn\'t recognize you. You uncover the secret you were sent to find!"
+					if chance in range(1, 9):
+						complication = True
+						complicationType = Crime
+					if randomchance in stealRange:
+						if randomchance in range(1, 21):
+							loottype = "common divine essence"
+							loot = True
+						if randomchance in range(21, 30):
+							loottype = "uncommon divine essence"
+							loot = True
+						if randomchance is 31:
+							loottype = "rare divine essence"
+							lootamt = 1
+							loot = True
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "You discovered the truth as well as several other pieces of evidence that your client will pay handsomely for."
+					if chance in range(1, 5):
+						complication = True
+						complicationType = Crime
+					if randomchance in stealRangeCrit:
+						if randomchance in range(1, 31):
+							loottype = "common divine essence"
+							loot = True
+						if randomchance in range(31, 41):
+							loottype = "uncommon divine essence"
+							loot = True
+						if randomchance in range(41,51):
+							loottype = "rare divine essence"
+							lootamt = 1
+							loot = True
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**The Disguise**|**Disguise Kit:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou earned {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/958785997313810462/969068566341120040/spy.png '
+				if loot == True:
+					display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+				if complication == True:
+					display += f' -f "**Complication!**|{Crime}" '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+			else:
+				display += f' -title "Missing tool or tool proficiency: Disguise Kit!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro disg if you are proficient in Disguise Kit." '
+	#Caravanner    
+		if "caravanner" in args:
+			if "Land Vehicles" in tools or etools:
+				ab = stren
+				if "Land Vehicles" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = amc, mod_override=fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} takes up a job driving a caravan!" -desc "Your client needs help transporting goods a short distance. Even though the nearby area is usually safe, you never know what might jump out and attack." '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "The caravan folk are somewhat unruly and wagon is hard to drive."
+					if chance in range(1, 31):
+						complication = True
+						complicationType = Work
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "You nearly botch the entire job!"
+					if chance in range(1, 61):
+						complication = True
+						complicationType = Work
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "You handle the wagon well and it doesn\'t seem like danger is afoot."
+					if chance in range(1, 16):
+						complication = True
+						complicationType = Work
+					if randomchance in stealRange:
+						loot = True
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "You manage to travel to the destination with little trouble."
+					if chance in range(1, 9):
+						complication = True
+						complicationType = Work
+					if randomchance in stealRange:
+						loot = True
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "A smooth trip completed!"
+					if chance in range(1, 5):
+						complication = True
+						complicationType = Work
+					if randomchance in stealRangeCrit:
+						loot = True
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**The Travel**|**Land Vehicles:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou earned {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/958785997313810462/969068775146131478/old-wagon.png '
+				if loot == True:
+					display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+				if complication == True:
+					display += f' -f "**Complication!**|{Work}" '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+			else:
+				display += f' -title "Missing tool or tool proficiency: Land Vehicles!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro land if you are proficient in Land Vehicles." '
+	#Sailor
+		if "sailor" in args:
+			if "Water Vehicles" in tools or etools:    
+				ab = max(stren,dex)
+				if "Water Vehicles" in etools:
+					fbonus = (proficiencyBonus*2) + int(ab)
+				else:
+					fbonus = proficiencyBonus + int(ab)
+				amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+				first = ab.d20(min_val = amc, mod_override=fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+				fc = vroll(first)
+				fcheck = fc.total + lmod
+				display += f'embed -title "{name} sets sail!" -desc "Whether you are a pirate, sailor, or other type of sea dog, the ocean is a dangerous mistress. Keep your wits about you!" '
+				critF = '1d4'
+				pRange = '2d6'
+				mRange = '3d6'
+				gRange = '3d8'
+				critS = '6d6'
+				if fcheck in rangeBad:
+					moneyMod = 1
+					monies = vroll(pRange)
+					result = "There she blows!"
+					if chance in range(1, 31):
+						complication = True
+						complicationType = Sea
+				if fc.result.crit == 2:
+					moneyMod = .75
+					monies = vroll(critF)
+					result = "Everthing was going well until that kraken showed up."
+					if chance in range(1, 61):
+						complication = True
+						complicationType = Sea
+				if fcheck in rangeMed:
+					moneyMod = 1.1
+					monies = vroll(mRange)
+					result = "Decent pay for decent work."
+					if chance in range(1, 16):
+						complication = True
+						complicationType = Sea
+					if randomchance in range(1, 21):
+							loottype = "common primal essence"
+							loot = True
+					if randomchance in range(21, 30):
+							loottype = "uncommon primal essence"
+							loot = True
+					if randomchance is 31:
+							loottype = "rare primal essence"
+							lootamt = 1
+							loot = True
+				if fcheck in rangeGood:
+					moneyMod = 1.25
+					monies = vroll(gRange)
+					result = "These waters may be dangerous, but you are made of tougher stuff."
+					if chance in range(1, 9):
+						complication = True
+						complicationType = Sea
+					if randomchance in stealRange:
+						if randomchance in range(1, 21):
+							loottype = "common primal essence"
+							loot = True
+						if randomchance in range(21, 30):
+							loottype = "uncommon primal essence"
+							loot = True
+						if randomchance is 31:
+							loottype = "rare primal essence"
+							lootamt = 1
+							loot = True
+				if fc.result.crit == 1:
+					moneyMod = 1.5
+					monies = vroll(critS)
+					result = "Those scallywags that tried to fight the ship were in for a surprised the minute they crossed paths with you!"
+					if chance in range(1, 5):
+						complication = True
+						complicationType = Sea
+					if randomchance in stealRangeCrit:
+						if randomchance in range(1, 31):
+							loottype = "common primal essence"
+							loot = True
+						if randomchance in range(31, 41):
+							loottype = "uncommon primal essence"
+							loot = True
+						if randomchance in range(41,51):
+							loottype = "rare primal essence"
+							lootamt = 1
+							loot = True
+				money = monies.total + base
+				gp_delta = ceil(money*moneyMod)
+				total_coins = coins.modify_coins(gp=gp_delta)
+				pay = total_coins.total
+				display += f' -f "**The Voyage**|**Water Vehicles:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou earned {pay} gp this session." -thumb https://cdn.discordapp.com/attachments/958785997313810462/969068946328281128/anchor.png '
+				if loot == True:
+					display += f' -f "**Lucky find!**|You managed to find {stealamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+				if complication == True:
+					display += f' -f "**Complication!**|{Sea}" '
+				c.mod_cc(dt, -int(8))
+				curHour = c.cc_str(dt)
+				display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+			else:
+				display += f' -title "Missing tool or tool proficiency: Water Vehicles!" -desc "You seem to be missing either the tool or tool proficiency. Please purchase the tool and add it to your !bag or add the tool proficiency using !tool pro water if you are proficient in Water Vehicles." '
+		if "magitek" in args:
+			ab = max(arc,rel,his,natu)
+			fbonus = proficiencyBonus + int(ab)
+			amc = (10 if c.csettings.get("Talent", False) and fbonus else None)
+			first = ab.d20(min_val = amc, mod_override=fbonus) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			fc = vroll(first)
+			fcheck = fc.total + lmod
+			display += f'embed -title "{name} get weird!" -desc "Magitechnicians try to marry magic with the technology of the past, present, and future. Kam Corp pays well and sometimes you score the leftover scraps. Hopefully you don\'t blow anything up this time." '
+			critF = '1d4'
+			pRange = '2d6'
+			mRange = '3d6'
+			gRange = '3d8'
+			critS = '6d6'
+			if fcheck in rangeBad:
+				moneyMod = 1
+				monies = vroll(pRange)
+				result = "This is definitely not your best work."
+				if chance in range(1, 31):
+					complication = True
+					complicationType = Magic
+			if fc.result.crit == 2:
+				moneyMod = .75
+				result = "Tee hee, you\'re in danger."
+				if chance in range(1, 61):
+					complication = True
+					complicationType = Magic
+			if fcheck in rangeMed:
+				moneyMod = 1.1
+				result = "Hmm, not bad, but not great. You know you can do better than that."
+				if chance in range(1, 16):
+					complication = True
+					complicationType = Magic
+				if randomchance in range(1, 31):
+					if randomchance in range(1, 21):
+						loottype = "common arcane essence"
+						loot = True
+					if randomchance in range(21, 30):
+						loottype = "uncommon arcane essence"
+						loot = True
+					if randomchance is 31:
+						loottype = "rare arcane essence"
+						lootamt = 1
+						loot = True
+			if fcheck in rangeGood:
+				moneyMod = 1.25
+				result = "Eureka! You created something wonderful."
+				if chance in range(1, 9):
+					complication = True
+					complicationType = Magic
+				if randomchance in stealRange:
+						if randomchance in range(1, 21):
+							loottype = "common arcane essence"
+							loot = True
+						if randomchance in range(21, 30):
+							loottype = "uncommon arcane essence"
+							loot = True
+						if randomchance is 31:
+							loottype = "rare arcane essence"
+							lootamt = 1
+							loot = True
+			if fc.result.crit == 1:
+				moneyMod = 1.5
+				result = "Tears well up in your eyes. This is your baby and it is awesome."
+				if chance in range(1, 5):
+						complication = True
+						complicationType = Magic
+				if randomchance in stealRangeCrit:
+						if randomchance in range(1, 31):
+							loottype = "common arcane essence"
+							loot = True
+						if randomchance in range(31, 41):
+							loottype = "uncommon arcane essence"
+							loot = True
+						if randomchance in range(41,51):
+							loottype = "rare arcane essence"
+							lootamt = 1
+							loot = True
+			second = ab.d20(min_val = amc) + ("+1d4[guidance]" if parse.get("guidance") else "") 
+			sc = vroll(second)
+			scheck = sc.total + lmod
+			if scheck in rangeBad:
+				monies = vroll(pRange)
+				result = "You turned the device on... and it didn\'t end well let\'s say..."
+				if chance in range(1, 31):
+					complication = True
+					complicationType = Magic
+			if sc.result.crit == 2:
+				monies = vroll(critF)
+				result = "KABLOOEY!"
+				if chance in range(1, 51):
+					complication = True
+					complicationType = Magic
+			if scheck in rangeMed:
+				monies = vroll(mRange)
+				result = "It technically works, so we are chalking that up as an absolute win."
+				if chance in range(1, 16):
+					complication = True
+					complicationType = Magic
+				if randomchance in stealRange:
+					loot = True
+			if scheck in rangeGood:
+				monies = vroll(gRange)
+				result = "Oooh, it even cleans!"
+				if chance in range(1, 6):
+					complication = True
+					complicationType = Magic
+				if randomchance in stealRange:
+					loot = True
+			if sc.result.crit == 1:
+				monies = vroll(critS)
+				result = "Drats! Why did you ever sign away the patent? Ah hubris and short-term gains, my old archenemies..."
+				if randomchance in stealRangeCrit:
+					loot = True
+			money = monies.total + base
+			gp_delta = ceil(money*moneyMod)
+			total_coins = coins.modify_coins(gp=gp_delta)
+			pay = total_coins.total
+			display += f' -f "**Design Phase**|**Research:** {fc} + {lmod} (lifestyle) = {fcheck}\n{result}" -f "**Payment**|Based on your second check, here is your roll {monies} + {base}, then multiplied by {moneyMod}, which is based on your first check.\n\nYou earned {pay} gp this session. This work looks at all your knowledge skills and uses the one with the highest number." -thumb https://cdn.discordapp.com/attachments/958785997313810462/969069180483686460/clockwork.png '
+			if loot == True:
+				display += f' -f "**Lucky find!**|You managed to find {lootamt} {loottype}. Nice! You will need to manually add it to your !bag." '
+			if complication == True:
+					display += f' -f "**Complication!**|{Magic}" '
+			c.mod_cc(dt, -int(8))
+			curHour = c.cc_str(dt)
+			display += f' -footer "Your payment was automatically added to your coinpurse. You spent 8 hours working and have {curHour} hours remaining this week." '
+else:
+	display += f' -title "Not enough time!" -desc "You need at least 8 hours of downtime to go to work. You have {curHour} hours left this week." '
+return display
+</drac2>
