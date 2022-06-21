@@ -1,0 +1,137 @@
+embed <drac2>
+if get("Adventure") == "On":
+	return f' -desc "You cannot carouse while on adventure." '
+c = character()
+cs = c.skills
+coins = c.coinpurse
+dt = "Downtime"
+xp = "Experience"
+inf = "InfluencePoints"
+ip = "InspirationPoints"
+ls = get("Lifestyle")
+v = int(get(inf))
+if "Poor" in ls:
+	lmod = -3
+if "Modest" in ls:
+	lmod = 0
+if "Wealthy" in ls:
+	lmod = 3
+rr_num = c.csettings.get("reroll", None)
+
+#I am tired so not adding new desc. You can figure it out by now maybe lol
+
+
+#complication and success rates
+comps = {"1": "You wake up in jail, pending charges for a serious crime. You are not allowed to make bail. Go to !jail.", "2": "You wake up in jail, pending charges for a minor crime. You can deduct 20 gp from your coinpurse using !g coins -10 to make bail or lose a maximum of 20 hours of downtime instead by going to !jail.", "3": "You wake up in your bed and look over to your coinpurse. It seems smaller than it was before. Deduct 10 gp from your coinpurse using !g coins -10.", "4": "You wake up in an alley and when you walk out, you see wanted posters everywhere with your face on it. You gain 1 influence, but you cannot do non-Crime !work for the rest of this week. You can manually gain an influence using !points -inf 1.", "5": "You are at a party of some kind and ended up insulting a someone with a bad atttidue -- a fight has broken out! Ping Proctors to begin the encounter. You can invite 1 character from another player to join you. If you do, the both of you gain 5 bond points.", "6": "You wake up in the middle of the night in the woods with several people you were partying with just earlier (1d6+1 humanoid creatures with a CR no higher than 1/2 as determined by the Proctor). All of a sudden, something from the wilds attacks you all! Ping Proctors to begin the encounter. You can invite 1 character from another player to join you. If you do, the both of you gain 5 bond points.", "7": "After the party, you begin your trek home. Make a perception check versus a DC 18 (this is check based not passive based). If you fail, you are surprised as mysterious assassins spring their attack! Ping Proctors to begin the encounter. You can invite 1 character from another player to join you. If you do, the both of you gain 5 bond points. Proctors determine the statblocks of these assassins, examples of good creatures include spy, assassin, wererat, master thief -- basically anything that is humanoid and has proficiency in the stealth skill.", "8": "You are inebriated as you walk back home. Suddenly everything around you looks red and you look up -- the moon is growing red and suddenly a tear drops! An aberration from the moon is here and threatening all these innocent lives. Time to put up or shut up. Ping Proctors to begin the encounter. You can invite 1 character from another player to join you. If you do, the both of you gain 5 bond points. Proctors determine the statblocks of these assassins, examples of good creatures include nothic, chull, aboleth -- basically anything that is an aberration.", "9": "Something happened and now you have a nickname you totally hate. Ping a DM to get this awful nickname. You must edit your tupperbox for this character to include the awful nickname. Example: Shep \'Big Bessy\' Oakley. You may reQuest to have this changed!", "10": "You made a fool of yourself in public and are now suffering the social consequences. You have disadvantage on all !work and !carouse checks you make this week.", "11": "You ended up crossing the wrong crowd and now a gang or criminal syndicate is after you. Ping Proctors to begin the encounter. You can invite 1 character from another player to join you. If you do, the both of you gain 5 bond points. Proctors determine the statblocks of these criminals, examples include thug, spy, and other humanoids.", "12": "You are accused of committing blasphemy against one of the gods of Mythica! You gain some notoriety. Gain a Fate Point by using !points -fp +1.", "13": "While under the influence or exhaustion from all the partying, you managed to get short with someone and insult them. Gain a Fate Point by using !points -fp +1.", "14": "You made a promise to someone. For one reason or another, you regret making this -- either the promise or making it to a specific person. Now that someone has come calling to cash in this promise. Fill out a reQuest about this complication!", "15": "You are hungover and suffer disadvantage on !carouse, !craft, !gather, !hunt, !research, !work, and any attacks you make or spells you cast until you take a long rest.", "20": "Some time ago, you promised a upperclass socialite you would host a party. They have now come knocking with a list of guests and entertainment requests. Fill out a reQuest to get started."}
+fRange = range(-30,6) #comp 60% chance
+bRange = range(6, 10) #comp 30% chance
+mRange = range(10, 16) #comp 15% chance
+gRange = range(16, 21) #comp 8% chance
+sRange = range(21, 50) #comp 4% chance
+cfComp = range(1, 86)
+fComp = range(1, 61)
+bComp = range(1,31)
+mComp = range(1,16)
+gComp = range(1,9)
+sComp = range(1,5)
+csComp = range(1,2)
+chance = roll('1d100')
+complication = False
+reward = 0
+crit = False
+
+#load arguments and variables
+args = &ARGS&
+parse = argparse(args)
+misc_bonus = ""
+bonus = parse.get('b')
+if "-b" in args:
+	misc_bonus += f'+{bonus[0]}'
+advbase = parse.adv(boolwise=True)
+hours = c.get_cc(dt)
+display = f' -title "{name} goes carousing!" -thumb https://cdn.discordapp.com/attachments/872987948642095137/971418711850360912/beer-stein.png '
+
+if hours < 6:
+	curhour = c.cc_str(dt)
+	return f' -desc "Not enough time! You need at least 6 hours of downtime to carouse." -f "!carouse allows you to gain influence points. To learn more about influence points, use !points." -footer "{name}: <{c.hp_str()}> | Influence: {InfluencePoints} | Downtime Left: <{hours}> | Alias by Ru#9223" -thumb {image} -color {color} '
+if v == proficiencyBonus:
+	curhour = c.cc_str(dt)
+	return f' -desc "You already have max influence points!" -f "!carouse allows you to gain influence points. To learn more about influence points, use !points." -footer "{name}: <{c.hp_str()}> | Influence: {InfluencePoints} | Downtime Left: <{hours}> | Alias by Ru#9223" -thumb {image} -color {color} '
+
+#the check itself
+carouseskills = [cs.arcana,cs.athletics,cs.deception,cs.history,cs.intimidation,cs.medicine,cs.nature,cs.persuasion,cs.religion]
+cab = max(carouseskills)
+skill_list = ["Arcana","Athletics","Deception","History","Intimidation","Medicine","Nature","Persuasion","Religion"]
+cindex = carouseskills.index(cab)
+skillname = skill_list[cindex]
+
+cmc = (10 if c.csettings.get("talent", False) and cab.prof else None)
+carousing =  cab.d20(rr_num, cmc) + ("+1d4[guidance]" if parse.get("guidance") else "") + misc_bonus
+carouse_roll = vroll(carousing)
+carouse_check = carouse_roll.total + lmod
+
+#compare the roll to the ranges established.
+if carouse_roll.result.crit == 2:
+	compDC = 85
+	crit = True
+	display += f' -f "Critical Failure!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are unable to forge new allies, learn intel, or gain notability among the people." '
+	if chance in cfComp:
+		complication = True
+if carouse_check in fRange and crit == False:
+	compDC = 60
+	display += f' -f "Utter Failure!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are unable to forge new allies, learn intel, or gain notability among the people." '
+	if chance in fComp:
+		complication = True
+if carouse_check in bRange:
+	compDC = 30
+	display += f' -f "Failure|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are unable to forge new allies, learn intel, or gain notability among the people." '
+	if chance in bComp:
+		complication = True
+if carouse_check in mRange:
+	compDC = 15
+	display += f' -f "Success!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are able to forge new allies, learn intel, or gain notability among the people." '
+	display += f' -f "Reward|You gained 1 influence point." '
+	reward += 1
+	if chance in mComp:
+		complication = True
+if carouse_check in gRange:
+	compDC = 8
+	rewardRoll = roll('1d3')
+	display += f' -f "Great Success!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are able to forge new allies, learn intel, or gain notability among the people." '
+	display += f' -f "Reward|You gained {rewardRoll} influence point(s)." '
+	reward += rewardRoll
+	if chance in gComp:
+		complication = True
+if carouse_roll.result.crit == 1:
+	compDC = 1
+	crit = True
+	rewardRoll = roll('1d6+1')
+	reward += rewardRoll
+	display += f' -f "Critical Success!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are able to forge new allies, learn intel, or gain notability among the people." '
+	display += f' -f "Reward|You gained {rewardRoll} influence points." '
+	if chance in csComp:
+		complication = True
+if carouse_check in sRange and crit == False:
+	compDC = 4
+	rewardRoll = roll('1d4+1')
+	display += f' -f "Overwhelming Success!|Carousing with **{skillname}**: {carouse_roll} + {lmod} (from lifestyle)\n\nYou are able to forge new allies, learn intel, or gain notability among the people." '
+	display += f' -f "Reward|You gained {rewardRoll} influence points." '
+	reward += rewardRoll
+	if chance in sComp:
+		complication = True
+if complication == True:	
+	Die = roll(f"1d20")
+	result = [comps[x] for x in comps if Die <= int(x)][0]
+	display += f' -f "Complication!|Checking for complication... {compDC}% chance of complication.\n Out of 100, you rolled a {chance}\n{result}" '
+	pic = "https://cdn.discordapp.com/attachments/958785997313810462/976966668045664297/SGI_addons_178.png"
+if complication == False:
+	display += f' -f "No Complication|Checking for complication... {compDC}% chance of complication.\nNo complications have arisen." '
+	pic = "https://cdn.discordapp.com/attachments/958785997313810462/976966612693426236/SGI_131.png"
+new = v + reward if v + reward <= proficiencyBonus else proficiencyBonus
+c.set_cvar(inf, str(new))
+c.mod_cc(dt, -int(6))
+curhour = c.cc_str(dt)
+hours = c.get_cc(dt)
+display += f' -f "!carouse allows you to gain influence points. To learn more about influence points, use !points." -footer "{name}:<{c.hp_str()}> | Influence: {InfluencePoints} | Downtime Left: <{hours}> | Alias by Ru#9223" -thumb {pic} -color {color} '
+return display
+</drac2>
